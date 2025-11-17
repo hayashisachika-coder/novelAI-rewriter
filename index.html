@@ -5,184 +5,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>AI執筆エディタ</title>
     <style>
-        /* --- 全体のスタイル (明朝体フォント) --- */
+        /* --- 全体のスタイル --- */
         body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
+            margin: 0; padding: 0; height: 100%;
             font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "MS PMincho", "serif";
             background-color: #f0f2f5;
         }
-
         #app-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; height: 100vh;
+            width: 100%; max-width: 600px; margin: 0 auto;
+            background-color: #ffffff; box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
 
-        /* --- ヘッダー (文字数表示付き) --- */
+        /* --- ヘッダー (コピーボタン・文字数表示付き) --- */
         header {
-            background-color: #f9f9f9;
-            color: #333;
-            padding: 12px 15px;
-            font-size: 18px;
-            font-weight: bold;
+            background-color: #f9f9f9; color: #333; padding: 12px 15px;
+            font-size: 16px; font-weight: bold;
             display: flex;
-            justify-content: space-between; /* 両端揃え */
+            justify-content: space-between; /* 左・中・右に配置 */
             align-items: center;
             border-bottom: 1px solid #ddd;
         }
-        
-        /* 文字数カウントのバッジ */
+
+        /* コピーボタンのスタイル */
+        #copy-all-btn {
+            background: none; border: 1px solid #ccc; border-radius: 5px;
+            cursor: pointer; padding: 5px 10px; font-size: 18px;
+            background-color: #fff;
+        }
+        #copy-all-btn:active { background-color: #e0e0e0; }
+
+        /* 文字数カウント */
         #char-count {
-            font-size: 12px;
-            font-weight: normal;
-            color: #666;
-            background-color: #eee;
-            padding: 4px 8px;
-            border-radius: 10px;
+            font-size: 12px; font-weight: normal; color: #666;
+            background-color: #eee; padding: 4px 8px; border-radius: 10px;
         }
 
-        /* --- 1. 原稿表示エリア --- */
+        /* --- 原稿エリア --- */
         #manuscript-area {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background-color: #ffffff;
-            font-size: 16px;
-            line-height: 1.8;
+            flex-grow: 1; overflow-y: auto; padding: 20px;
+            background-color: #ffffff; font-size: 16px; line-height: 1.8;
         }
-
-        /* ブロックのスタイル (Flexboxでボタンと分離) */
         .manuscript-block {
-            padding: 10px 0;
-            border-bottom: 1px dashed #ccc;
-            display: flex;
-            justify-content: space-between; /* テキストとボタンを離す */
-            align-items: flex-start;
-            gap: 10px;
+            padding: 10px 0; border-bottom: 1px dashed #ccc;
+            display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
         }
-        
-        /* テキスト部分 */
-        .block-text {
-            flex-grow: 1;
-            word-wrap: break-word;
-            white-space: pre-wrap;
-        }
-        
-        /* 編集ボタン */
+        .block-text { flex-grow: 1; word-wrap: break-word; white-space: pre-wrap; }
         .edit-button {
-            flex-shrink: 0;
-            padding: 5px;
-            cursor: pointer;
-            border-radius: 4px;
-            min-width: 20px;
-            text-align: center;
-            font-family: sans-serif; /* アイコンは見やすく */
+            flex-shrink: 0; padding: 5px; cursor: pointer; border-radius: 4px;
+            min-width: 20px; text-align: center; font-family: sans-serif;
         }
-        
-        .edit-button:hover {
-            background-color: #f0f0f0;
-        }
-        
-        .manuscript-block.info {
-            color: #888;
-            cursor: default;
-        }
+        .edit-button:hover { background-color: #f0f0f0; }
+        .manuscript-block.info { color: #888; cursor: default; }
+        .manuscript-block.is-editing { background-color: #f0f8ff; }
 
-        .manuscript-block.is-editing {
-            background-color: #f0f8ff; /* 編集中のハイライト */
-        }
-
-        /* --- 2. 執筆エリア --- */
+        /* --- 執筆エリア --- */
         #writing-area {
-            display: flex;
-            align-items: flex-end;
-            padding: 10px;
-            border-top: 1px solid #ddd;
-            background-color: #f9f9f9;
+            display: flex; align-items: flex-end; padding: 10px;
+            border-top: 1px solid #ddd; background-color: #f9f9f9;
         }
-
         #text-input {
-            flex-grow: 1;
-            font-size: 16px;
-            padding: 10px 12px;
-            border: 1px solid #ccc;
-            border-radius: 20px;
-            margin-right: 8px;
-            resize: none;
-            max-height: 120px;
-            overflow-y: auto;
+            flex-grow: 1; font-size: 16px; padding: 10px 12px; border: 1px solid #ccc;
+            border-radius: 20px; margin-right: 8px; resize: none; max-height: 120px; overflow-y: auto;
             font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "MS PMincho", "serif";
         }
-
         .action-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 20px;
-            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;
+            border-radius: 50%; border: none; cursor: pointer; font-size: 20px; flex-shrink: 0;
         }
-
         #ai-btn { background-color: #8E44AD; color: white; margin-right: 5px; }
         #confirm-btn { background-color: #4A90E2; color: white; }
 
-        /* --- 3. AI提案ポップアップ --- */
-        #ai-modal {
-            display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.5); animation: slideIn 0.3s ease-out;
-        }
+        /* --- AIモーダル --- */
+        #ai-modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        
-        .modal-content {
-            position: absolute; bottom: 0; width: 100%; height: 90vh; max-width: 600px;
-            left: 50%; transform: translateX(-50%); background-color: #ffffff;
-            border-radius: 20px 20px 0 0; display: flex; flex-direction: column;
-        }
-        .modal-header {
-            padding: 15px; border-bottom: 1px solid #eee; font-size: 18px; font-weight: bold;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .modal-content { position: absolute; bottom: 0; width: 100%; height: 90vh; max-width: 600px; left: 50%; transform: translateX(-50%); background-color: #ffffff; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; }
+        .modal-header { padding: 15px; border-bottom: 1px solid #eee; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         #close-modal { font-size: 24px; font-weight: bold; color: #aaa; cursor: pointer; padding: 5px; }
-        
         .suggestion-tabs { display: flex; justify-content: space-around; border-bottom: 1px solid #eee; }
-        .tab {
-            padding: 15px; cursor: pointer; color: #888; font-weight: bold; border-bottom: 3px solid transparent;
-        }
+        .tab { padding: 15px; cursor: pointer; color: #888; font-weight: bold; border-bottom: 3px solid transparent; }
         .tab.active { color: #4A90E2; border-bottom-color: #4A90E2; }
-        
-        #suggestion-text {
-            flex-grow: 1; padding: 20px; font-size: 16px; line-height: 1.6;
-            overflow-y: auto; white-space: pre-wrap; background-color: #f9f9f9;
-        }
-        
+        #suggestion-text { flex-grow: 1; padding: 20px; font-size: 16px; line-height: 1.6; overflow-y: auto; white-space: pre-wrap; background-color: #f9f9f9; }
         .modal-footer { padding: 15px; border-top: 1px solid #eee; background-color: #f9f9f9; }
-        #more-request-input {
-            width: calc(100% - 24px); padding: 10px 12px; border: 1px solid #ccc;
-            border-radius: 20px; margin-bottom: 10px;
-        }
-        #decision-btn {
-            width: 100%; padding: 15px; background-color: #4CAF50; color: white; border: none;
-            border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;
-        }
+        #more-request-input { width: calc(100% - 24px); padding: 10px 12px; border: 1px solid #ccc; border-radius: 20px; margin-bottom: 10px; }
+        #decision-btn { width: 100%; padding: 15px; background-color: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div id="app-container">
-
         <header>
-            <span>AI執筆エディタ</span>
+            <button id="copy-all-btn" title="全文コピー">📋 全文コピー</button>
+            
             <span id="char-count">0文字</span>
         </header>
 
@@ -194,7 +108,6 @@
             <button id="ai-btn" class="action-button">✨</button>
             <button id="confirm-btn" class="action-button">⬆️</button>
         </div>
-
     </div>
 
     <div id="ai-modal">
@@ -216,14 +129,14 @@
         </div>
     </div>
 
-
     <script>
-        // --- DOM要素の取得 ---
+        // --- DOM要素 ---
         const textInput = document.getElementById('text-input');
         const confirmBtn = document.getElementById('confirm-btn');
         const aiBtn = document.getElementById('ai-btn');
         const manuscriptArea = document.getElementById('manuscript-area');
         const charCountDisplay = document.getElementById('char-count');
+        const copyAllBtn = document.getElementById('copy-all-btn'); // ★追加
         
         const aiModal = document.getElementById('ai-modal');
         const closeModalBtn = document.getElementById('close-modal');
@@ -235,95 +148,119 @@
         // --- グローバル変数 ---
         let currentSuggestions = []; 
         let currentSuggestionIndex = 0; 
-        let editingBlockId = null; // 現在編集中のブロックID
+        let editingBlockId = null; 
         const STORAGE_KEY = 'ai_novel_editor_data'; 
         
-        // ★★★ 重要: ここにGASのURLを貼り付けてください ★★★
+        // ★★★ GAS URL ★★★
         const GAS_WEB_APP_URL = "ここにあなたのGASのWebアプリURLを貼り付け"; 
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+        // ★★★★★★★★★★★
 
-        // --- イベントリスナーの設定 ---
+        // --- イベントリスナー ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadManuscript(); // 保存データを読み込み
-            
+            loadManuscript();
             textInput.addEventListener('input', autoResizeTextarea);
             confirmBtn.addEventListener('click', handleConfirm);
             
-            // AI関連
             aiBtn.addEventListener('click', openAiModal);
             closeModalBtn.addEventListener('click', closeAiModal);
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => switchSuggestion(parseInt(tab.dataset.index)));
-            });
+            tabs.forEach(tab => tab.addEventListener('click', () => switchSuggestion(parseInt(tab.dataset.index))));
             decisionBtn.addEventListener('click', handleAiDecision);
+            
             moreRequestInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && e.target.value.trim() !== '') {
-                    handleAiMoreRequest_Dummy(e.target.value); 
-                    e.target.value = '';
+                    handleAiMoreRequest_Dummy(e.target.value); e.target.value = '';
                 }
             });
             
-            // 編集ボタンのクリック検知
-            manuscriptArea.addEventListener('click', handleBlockClick); 
+            manuscriptArea.addEventListener('click', handleBlockClick);
+            
+            // ★追加: コピーボタンの処理
+            copyAllBtn.addEventListener('click', handleCopyAll);
         });
-
 
         // --- 関数 ---
 
-        // 1. 確定ボタンの処理
+        // ★追加: 全文コピー機能
+        function handleCopyAll() {
+            // info以外の全ブロックのテキストを取得
+            const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
+            
+            if (blocks.length === 0) {
+                alert('コピーする文章がありません。');
+                return;
+            }
+
+            // 改行で連結
+            const allText = blocks.map(block => block.textContent).join('\n');
+
+            // クリップボードに書き込み (PC/スマホ両対応の書き方)
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(allText).then(() => {
+                    alert('全文をコピーしました！');
+                }).catch(err => {
+                    // 失敗した場合（古いブラウザや非HTTPS環境など）のフォールバック
+                    fallbackCopyTextToClipboard(allText);
+                });
+            } else {
+                fallbackCopyTextToClipboard(allText);
+            }
+        }
+        
+        // フォールバック用コピー関数
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            // 画面外に配置
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('全文をコピーしました！');
+            } catch (err) {
+                alert('コピーに失敗しました。手動でコピーしてください。');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // 確定ボタン
         function handleConfirm() {
             const text = textInput.value;
-            
-            // 空文字（改行のみ含む）の場合の処理
             if (text.trim() === '') {
-                // 編集中なら編集状態をキャンセル
                 if (editingBlockId) {
                     const editingBlock = document.querySelector(`[data-id="${editingBlockId}"]`);
                     if (editingBlock) editingBlock.classList.remove('is-editing');
                     editingBlockId = null;
                 }
-                textInput.value = '';
-                autoResizeTextarea();
-                return;
+                textInput.value = ''; autoResizeTextarea(); return;
             }
-
-            // 編集モードか新規追加か
             if (editingBlockId) {
-                // --- 編集中のブロックを更新 ---
                 const editingBlock = document.querySelector(`[data-id="${editingBlockId}"]`);
                 if (editingBlock) {
-                    // .block-text の中身だけを書き換える（ボタンは残す）
                     const textSpan = editingBlock.querySelector('.block-text');
-                    if (textSpan) {
-                        textSpan.textContent = text;
-                    }
+                    if (textSpan) textSpan.textContent = text;
                     editingBlock.classList.remove('is-editing');
                 }
                 editingBlockId = null;
             } else {
-                // --- 新規ブロックを追加 ---
                 addManuscript(text);
             }
-            
-            textInput.value = '';
-            autoResizeTextarea();
-            
-            // 保存＆文字数更新
+            textInput.value = ''; autoResizeTextarea();
             saveManuscript();
         }
 
-        // 1b. 原稿エリアにブロックを追加
+        // ブロック追加
         function addManuscript(text, isLoading = false) {
             const block = document.createElement('div');
             block.className = 'manuscript-block';
             block.dataset.id = `block-${Date.now()}-${Math.random()}`;
 
-            // テキスト用スパン
             const textSpan = document.createElement('span');
             textSpan.className = 'block-text';
             textSpan.textContent = text;
 
-            // 編集ボタン用スパン
             const editBtn = document.createElement('span');
             editBtn.className = 'edit-button';
             editBtn.textContent = '✏️';
@@ -332,83 +269,59 @@
             block.appendChild(editBtn);
             
             manuscriptArea.appendChild(block);
-            
-            // 読み込み中でなければ一番下にスクロール
             if (!isLoading) manuscriptArea.scrollTop = manuscriptArea.scrollHeight;
         }
         
-        // 7. 編集ボタンのクリック処理
+        // ブロック編集開始
         function handleBlockClick(event) {
-            // 編集ボタンが押されたかチェック
             const clickedButton = event.target.closest('.edit-button');
-            if (!clickedButton) return; // ボタン以外なら無視
+            if (!clickedButton) return;
 
             const clickedBlock = clickedButton.closest('.manuscript-block');
-            // infoブロックや、既に編集中のブロックは無視
-            if (!clickedBlock || clickedBlock.classList.contains('info') || clickedBlock.classList.contains('is-editing')) {
-                return;
-            }
+            if (!clickedBlock || clickedBlock.classList.contains('info') || clickedBlock.classList.contains('is-editing')) return;
             
-            // 他のブロックが編集中なら解除
             if (editingBlockId) {
                 const prevEditingBlock = document.querySelector(`[data-id="${editingBlockId}"]`);
                 if (prevEditingBlock) prevEditingBlock.classList.remove('is-editing');
             }
             
-            // 編集モード開始
             editingBlockId = clickedBlock.dataset.id;
             clickedBlock.classList.add('is-editing');
-            
-            // テキストボックスに文章をセット
             textInput.value = clickedBlock.querySelector('.block-text').textContent;
-            
-            autoResizeTextarea();
-            textInput.focus();
-            
-            // 編集開始時も念のため保存
+            autoResizeTextarea(); textInput.focus();
             saveManuscript();
         }
 
-        // 8. 保存機能
+        // 保存
         function saveManuscript() {
             const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
             const blockTexts = blocks.map(block => block.textContent);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(blockTexts));
-            
-            // 文字数も更新
             updateCharCount();
         }
 
-        // 9. 読み込み機能
+        // 読み込み
         function loadManuscript() {
             manuscriptArea.innerHTML = ''; 
             const savedData = localStorage.getItem(STORAGE_KEY);
-            
             if (savedData) {
                 const blockTexts = JSON.parse(savedData);
                 if (blockTexts.length > 0) {
                     blockTexts.forEach(text => addManuscript(text, true));
-                } else {
-                    addInfoBlock();
-                }
-            } else {
-                addInfoBlock();
-            }
-            // 読み込み後に文字数計算
+                } else { addInfoBlock(); }
+            } else { addInfoBlock(); }
             updateCharCount();
         }
         
-        // 10. 文字数カウント機能
+        // 文字数
         function updateCharCount() {
             const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
             let totalCount = 0;
-            blocks.forEach(block => {
-                totalCount += block.textContent.length;
-            });
+            blocks.forEach(block => { totalCount += block.textContent.length; });
             charCountDisplay.textContent = `${totalCount}文字`;
         }
 
-        // 11. 案内文ブロック追加
+        // 案内文
         function addInfoBlock() {
              const info = document.createElement('div');
              info.className = 'manuscript-block info';
@@ -419,111 +332,57 @@
              manuscriptArea.appendChild(info);
         }
 
-        // --- AI関連機能 ---
+        // AI呼び出し
+        async function callRealAiApi(originalText) {
+            console.log("AIサーバーにリクエスト中:", originalText);
+            const contextBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
+            const context = contextBlocks.map(b => b.textContent).join('\n\n');
+            try {
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST', mode: 'cors', headers: {'Content-Type': 'text/plain;charset=utf-t',},
+                    body: JSON.stringify({ originalText: originalText, context: context })
+                });
+                if (!response.ok) { throw new Error(`サーバーエラー: ${response.statusText}`); }
+                const result = await response.json();
+                if (result.success) {
+                    const aiResponseText = result.suggestionText;
+                    const suggestions = aiResponseText.split(/提案\d:/).map(s => s.trim()).filter(s => s.length > 0);
+                    if (suggestions.length > 0) {
+                        currentSuggestions = suggestions;
+                        while (currentSuggestions.length < 3) { currentSuggestions.push("（提案はありません）"); }
+                    } else { currentSuggestions = [aiResponseText, "（解析失敗）", "（解析失敗）"]; }
+                } else { throw new Error(`GASエラー: ${result.error}`); }
+            } catch (error) {
+                console.error("AI呼び出しエラー:", error);
+                currentSuggestions = [`エラーが発生しました: ${error.message}`, "設定を確認してください。"];
+            }
+            switchSuggestion(0);
+        }
 
+        // AI UI制御
         async function openAiModal() {
             const text = textInput.value;
-            if (text.trim() === '') {
-                alert('先に改善したい文章を入力してください。');
-                return;
-            }
-            
-            // UIを「考え中」にして開く
+            if (text.trim() === '') { alert('文章を入力してください。'); return; }
             currentSuggestions = ["AIが考え中です...", "AIが考え中です...", "AIが考え中です..."];
             switchSuggestion(0);
             aiModal.style.display = 'block';
-            
-            // GAS経由でGeminiを呼ぶ
             await callRealAiApi(text); 
         }
-        
-        function closeAiModal() {
-            aiModal.style.display = 'none';
-        }
-
+        function closeAiModal() { aiModal.style.display = 'none'; }
         function switchSuggestion(index) {
             currentSuggestionIndex = index;
             suggestionText.textContent = currentSuggestions[index];
             tabs.forEach((tab, i) => tab.classList.toggle('active', i === index));
         }
-        
         function handleAiDecision() {
             textInput.value = currentSuggestions[currentSuggestionIndex];
-            autoResizeTextarea();
-            closeAiModal();
+            autoResizeTextarea(); closeAiModal();
         }
-
         function handleAiMoreRequest_Dummy(requestText) {
-            alert(`「${requestText}」という指示ですね。 (現在、この機能はAIに接続されていません)`);
+            alert(`「${requestText}」という指示ですね。 (現在はダミーです)`);
         }
-
         function autoResizeTextarea() {
-            textInput.style.height = 'auto'; 
-            textInput.style.height = textInput.scrollHeight + 'px'; 
-        }
-        
-        // --- GAS呼び出し ---
-        async function callRealAiApi(originalText) {
-            console.log("AIサーバーにリクエスト中:", originalText);
-
-            // 文脈を取得（.block-text のみ）
-            const contextBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
-            const context = contextBlocks.map(b => b.textContent).join('\n\n');
-            
-            console.log("文脈:", context);
-
-            try {
-                const response = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-t',
-                    },
-                    body: JSON.stringify({
-                        originalText: originalText,
-                        context: context
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`サーバーエラー: ${response.statusText}`);
-                }
-
-                const result = await response.json();
-
-                if (result.success) {
-                    const aiResponseText = result.suggestionText;
-                    // 「提案X:」で分割
-                    const suggestions = aiResponseText.split(/提案\d:/)
-                                                      .map(s => s.trim())
-                                                      .filter(s => s.length > 0);
-                    
-                    if (suggestions.length > 0) {
-                        currentSuggestions = suggestions;
-                        while (currentSuggestions.length < 3) {
-                            currentSuggestions.push("（提案はありません）");
-                        }
-                    } else {
-                        currentSuggestions = [
-                            aiResponseText,
-                            "（解析失敗：提案形式ではありませんでした）",
-                            "（解析失敗）"
-                        ];
-                    }
-                } else {
-                    throw new Error(`GASエラー: ${result.error}`);
-                }
-
-            } catch (error) {
-                console.error("AI呼び出しエラー:", error);
-                currentSuggestions = [
-                    `エラーが発生しました: ${error.message}`,
-                    "APIキー、またはGASのURLを確認してください。",
-                    "GCPプロジェクトのAPI有効化も確認してください。"
-                ];
-            }
-            
-            switchSuggestion(0);
+            textInput.style.height = 'auto'; textInput.style.height = textInput.scrollHeight + 'px'; 
         }
 
     </script>
