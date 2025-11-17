@@ -17,25 +17,18 @@
             background-color: #ffffff; box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
 
-        /* --- ヘッダー (コピーボタン・文字数表示付き) --- */
+        /* --- ヘッダー --- */
         header {
             background-color: #f9f9f9; color: #333; padding: 12px 15px;
             font-size: 16px; font-weight: bold;
-            display: flex;
-            justify-content: space-between; /* 左・中・右に配置 */
-            align-items: center;
+            display: flex; justify-content: space-between; align-items: center;
             border-bottom: 1px solid #ddd;
         }
-
-        /* コピーボタンのスタイル */
         #copy-all-btn {
             background: none; border: 1px solid #ccc; border-radius: 5px;
-            cursor: pointer; padding: 5px 10px; font-size: 18px;
-            background-color: #fff;
+            cursor: pointer; padding: 5px 10px; font-size: 18px; background-color: #fff;
         }
         #copy-all-btn:active { background-color: #e0e0e0; }
-
-        /* 文字数カウント */
         #char-count {
             font-size: 12px; font-weight: normal; color: #666;
             background-color: #eee; padding: 4px 8px; border-radius: 10px;
@@ -82,6 +75,22 @@
         .modal-content { position: absolute; bottom: 0; width: 100%; height: 90vh; max-width: 600px; left: 50%; transform: translateX(-50%); background-color: #ffffff; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; }
         .modal-header { padding: 15px; border-bottom: 1px solid #eee; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         #close-modal { font-size: 24px; font-weight: bold; color: #aaa; cursor: pointer; padding: 5px; }
+        
+        /* ★元の文章表示エリア (追加) */
+        #original-text-area {
+            padding: 10px 15px;
+            background-color: #f7f7f7; /* 薄いグレー */
+            border-bottom: 1px solid #eee;
+            max-height: 100px; /* 長すぎたらスクロール */
+            overflow-y: auto;
+        }
+        .original-label {
+            font-size: 12px; font-weight: bold; color: #888; display: block; margin-bottom: 5px;
+        }
+        #original-text-content {
+            font-size: 14px; color: #555; white-space: pre-wrap;
+        }
+
         .suggestion-tabs { display: flex; justify-content: space-around; border-bottom: 1px solid #eee; }
         .tab { padding: 15px; cursor: pointer; color: #888; font-weight: bold; border-bottom: 3px solid transparent; }
         .tab.active { color: #4A90E2; border-bottom-color: #4A90E2; }
@@ -96,12 +105,10 @@
     <div id="app-container">
         <header>
             <button id="copy-all-btn" title="全文コピー">📋</button>
-            
             <span id="char-count">0文字</span>
         </header>
 
-        <div id="manuscript-area">
-            </div>
+        <div id="manuscript-area"></div>
 
         <div id="writing-area">
             <textarea id="text-input" rows="1" placeholder="文章を入力..."></textarea>
@@ -116,6 +123,12 @@
                 <span>AIリライト提案</span>
                 <span id="close-modal">×</span>
             </div>
+            
+            <div id="original-text-area">
+                <span class="original-label">元の文章:</span>
+                <div id="original-text-content"></div>
+            </div>
+            
             <div class="suggestion-tabs">
                 <span class="tab active" data-index="0">提案 1</span>
                 <span class="tab" data-index="1">提案 2</span>
@@ -136,7 +149,7 @@
         const aiBtn = document.getElementById('ai-btn');
         const manuscriptArea = document.getElementById('manuscript-area');
         const charCountDisplay = document.getElementById('char-count');
-        const copyAllBtn = document.getElementById('copy-all-btn'); // ★追加
+        const copyAllBtn = document.getElementById('copy-all-btn');
         
         const aiModal = document.getElementById('ai-modal');
         const closeModalBtn = document.getElementById('close-modal');
@@ -144,6 +157,9 @@
         const decisionBtn = document.getElementById('decision-btn');
         const moreRequestInput = document.getElementById('more-request-input');
         const tabs = document.querySelectorAll('.tab');
+        
+        // ★追加: 元の文章表示用
+        const originalTextContent = document.getElementById('original-text-content');
 
         // --- グローバル変数 ---
         let currentSuggestions = []; 
@@ -173,55 +189,30 @@
             });
             
             manuscriptArea.addEventListener('click', handleBlockClick);
-            
-            // ★追加: コピーボタンの処理
             copyAllBtn.addEventListener('click', handleCopyAll);
         });
 
         // --- 関数 ---
 
-        // ★追加: 全文コピー機能
+        // 全文コピー
         function handleCopyAll() {
-            // info以外の全ブロックのテキストを取得
             const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
-            
-            if (blocks.length === 0) {
-                alert('コピーする文章がありません。');
-                return;
-            }
-
-            // 改行で連結
+            if (blocks.length === 0) { alert('コピーする文章がありません。'); return; }
             const allText = blocks.map(block => block.textContent).join('\n');
-
-            // クリップボードに書き込み (PC/スマホ両対応の書き方)
             if (navigator.clipboard) {
-                navigator.clipboard.writeText(allText).then(() => {
-                    alert('全文をコピーしました！');
-                }).catch(err => {
-                    // 失敗した場合（古いブラウザや非HTTPS環境など）のフォールバック
-                    fallbackCopyTextToClipboard(allText);
-                });
-            } else {
-                fallbackCopyTextToClipboard(allText);
-            }
+                navigator.clipboard.writeText(allText).then(() => { alert('全文をコピーしました！'); })
+                .catch(err => { fallbackCopyTextToClipboard(allText); });
+            } else { fallbackCopyTextToClipboard(allText); }
         }
         
-        // フォールバック用コピー関数
         function fallbackCopyTextToClipboard(text) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
-            // 画面外に配置
-            textArea.style.position = "fixed";
-            textArea.style.left = "-9999px";
+            textArea.style.position = "fixed"; textArea.style.left = "-9999px";
             document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                alert('全文をコピーしました！');
-            } catch (err) {
-                alert('コピーに失敗しました。手動でコピーしてください。');
-            }
+            textArea.focus(); textArea.select();
+            try { document.execCommand('copy'); alert('全文をコピーしました！'); } 
+            catch (err) { alert('コピーに失敗しました。手動でコピーしてください。'); }
             document.body.removeChild(textArea);
         }
 
@@ -244,9 +235,7 @@
                     editingBlock.classList.remove('is-editing');
                 }
                 editingBlockId = null;
-            } else {
-                addManuscript(text);
-            }
+            } else { addManuscript(text); }
             textInput.value = ''; autoResizeTextarea();
             saveManuscript();
         }
@@ -256,18 +245,13 @@
             const block = document.createElement('div');
             block.className = 'manuscript-block';
             block.dataset.id = `block-${Date.now()}-${Math.random()}`;
-
             const textSpan = document.createElement('span');
             textSpan.className = 'block-text';
             textSpan.textContent = text;
-
             const editBtn = document.createElement('span');
             editBtn.className = 'edit-button';
             editBtn.textContent = '✏️';
-
-            block.appendChild(textSpan);
-            block.appendChild(editBtn);
-            
+            block.appendChild(textSpan); block.appendChild(editBtn);
             manuscriptArea.appendChild(block);
             if (!isLoading) manuscriptArea.scrollTop = manuscriptArea.scrollHeight;
         }
@@ -276,15 +260,12 @@
         function handleBlockClick(event) {
             const clickedButton = event.target.closest('.edit-button');
             if (!clickedButton) return;
-
             const clickedBlock = clickedButton.closest('.manuscript-block');
             if (!clickedBlock || clickedBlock.classList.contains('info') || clickedBlock.classList.contains('is-editing')) return;
-            
             if (editingBlockId) {
                 const prevEditingBlock = document.querySelector(`[data-id="${editingBlockId}"]`);
                 if (prevEditingBlock) prevEditingBlock.classList.remove('is-editing');
             }
-            
             editingBlockId = clickedBlock.dataset.id;
             clickedBlock.classList.add('is-editing');
             textInput.value = clickedBlock.querySelector('.block-text').textContent;
@@ -292,44 +273,36 @@
             saveManuscript();
         }
 
-        // 保存
+        // 保存・読み込み・文字数
         function saveManuscript() {
             const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
             const blockTexts = blocks.map(block => block.textContent);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(blockTexts));
             updateCharCount();
         }
-
-        // 読み込み
         function loadManuscript() {
             manuscriptArea.innerHTML = ''; 
             const savedData = localStorage.getItem(STORAGE_KEY);
             if (savedData) {
                 const blockTexts = JSON.parse(savedData);
-                if (blockTexts.length > 0) {
-                    blockTexts.forEach(text => addManuscript(text, true));
-                } else { addInfoBlock(); }
+                if (blockTexts.length > 0) { blockTexts.forEach(text => addManuscript(text, true)); } 
+                else { addInfoBlock(); }
             } else { addInfoBlock(); }
             updateCharCount();
         }
-        
-        // 文字数
         function updateCharCount() {
             const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
             let totalCount = 0;
             blocks.forEach(block => { totalCount += block.textContent.length; });
             charCountDisplay.textContent = `${totalCount}文字`;
         }
-
-        // 案内文
         function addInfoBlock() {
              const info = document.createElement('div');
              info.className = 'manuscript-block info';
              const textSpan = document.createElement('span');
              textSpan.className = 'block-text';
              textSpan.textContent = '（ここに確定した文章が積み上がっていきます...）';
-             info.appendChild(textSpan);
-             manuscriptArea.appendChild(info);
+             info.appendChild(textSpan); manuscriptArea.appendChild(info);
         }
 
         // AI呼び出し
@@ -363,6 +336,10 @@
         async function openAiModal() {
             const text = textInput.value;
             if (text.trim() === '') { alert('文章を入力してください。'); return; }
+            
+            // ★ここで元の文章をモーダル内にセット
+            originalTextContent.textContent = text;
+            
             currentSuggestions = ["AIが考え中です...", "AIが考え中です...", "AIが考え中です..."];
             switchSuggestion(0);
             aiModal.style.display = 'block';
@@ -388,5 +365,3 @@
     </script>
 </body>
 </html>
-
-
