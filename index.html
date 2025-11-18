@@ -24,11 +24,23 @@
             display: flex; justify-content: space-between; align-items: center;
             border-bottom: 1px solid #ddd;
         }
-        #copy-all-btn {
+        
+        /* ボタンをまとめるラッパー (追加) */
+        .header-buttons {
+            display: flex;
+            gap: 10px; /* ボタン間の隙間 */
+        }
+
+        /* ヘッダーボタン共通スタイル */
+        .header-btn {
             background: none; border: 1px solid #ccc; border-radius: 5px;
             cursor: pointer; padding: 5px 10px; font-size: 18px; background-color: #fff;
         }
-        #copy-all-btn:active { background-color: #e0e0e0; }
+        .header-btn:active { background-color: #e0e0e0; }
+        
+        /* 全消去ボタンだけ赤っぽくする（危険な操作なので） */
+        #clear-all-btn:active { background-color: #ffebee; border-color: #ffcdd2; }
+
         #char-count {
             font-size: 12px; font-weight: normal; color: #666;
             background-color: #eee; padding: 4px 8px; border-radius: 10px;
@@ -79,17 +91,12 @@
         /* 元の文章表示エリア */
         #original-text-area {
             padding: 10px 15px;
-            background-color: #f7f7f7; /* 薄いグレー */
+            background-color: #f7f7f7;
             border-bottom: 1px solid #eee;
-            max-height: 100px; /* 長すぎたらスクロール */
-            overflow-y: auto;
+            max-height: 100px; overflow-y: auto;
         }
-        .original-label {
-            font-size: 12px; font-weight: bold; color: #888; display: block; margin-bottom: 5px;
-        }
-        #original-text-content {
-            font-size: 14px; color: #555; white-space: pre-wrap;
-        }
+        .original-label { font-size: 12px; font-weight: bold; color: #888; display: block; margin-bottom: 5px; }
+        #original-text-content { font-size: 14px; color: #555; white-space: pre-wrap; }
 
         .suggestion-tabs { display: flex; justify-content: space-around; border-bottom: 1px solid #eee; }
         .tab { padding: 15px; cursor: pointer; color: #888; font-weight: bold; border-bottom: 3px solid transparent; }
@@ -104,7 +111,10 @@
 
     <div id="app-container">
         <header>
-            <button id="copy-all-btn" title="全文コピー">📋</button>
+            <div class="header-buttons">
+                <button id="copy-all-btn" class="header-btn" title="全文コピー">📋</button>
+                <button id="clear-all-btn" class="header-btn" title="全消去">🗑️</button>
+            </div>
             <span id="char-count">0文字</span>
         </header>
 
@@ -150,6 +160,7 @@
         const manuscriptArea = document.getElementById('manuscript-area');
         const charCountDisplay = document.getElementById('char-count');
         const copyAllBtn = document.getElementById('copy-all-btn');
+        const clearAllBtn = document.getElementById('clear-all-btn'); // ★追加
         
         const aiModal = document.getElementById('ai-modal');
         const closeModalBtn = document.getElementById('close-modal');
@@ -158,7 +169,6 @@
         const moreRequestInput = document.getElementById('more-request-input');
         const tabs = document.querySelectorAll('.tab');
         
-        // 元の文章表示用
         const originalTextContent = document.getElementById('original-text-content');
 
         // --- グローバル変数 ---
@@ -184,7 +194,6 @@
             
             moreRequestInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && e.target.value.trim() !== '') {
-                    // ★修正: 本物の関数を呼び出す
                     handleAiMoreRequest(e.target.value); 
                     e.target.value = '';
                 }
@@ -192,9 +201,35 @@
             
             manuscriptArea.addEventListener('click', handleBlockClick);
             copyAllBtn.addEventListener('click', handleCopyAll);
+            
+            // ★追加: 全消去ボタンのイベント
+            clearAllBtn.addEventListener('click', handleClearAll);
         });
 
         // --- 関数 ---
+
+        // ★追加: 全消去機能
+        function handleClearAll() {
+            // 確認ダイアログを表示
+            if (confirm('本当に全ての文章を削除しますか？\nこの操作は取り消せません。')) {
+                // 1. ローカルストレージを削除
+                localStorage.removeItem(STORAGE_KEY);
+                
+                // 2. 画面上のブロックを全削除
+                manuscriptArea.innerHTML = '';
+                
+                // 3. 編集状態などの変数をリセット
+                editingBlockId = null;
+                textInput.value = '';
+                autoResizeTextarea();
+                
+                // 4. 案内文を再表示
+                addInfoBlock();
+                
+                // 5. 文字数をリセット
+                updateCharCount();
+            }
+        }
 
         // 全文コピー
         function handleCopyAll() {
@@ -307,23 +342,20 @@
              info.appendChild(textSpan); manuscriptArea.appendChild(info);
         }
 
-        // --- ★★★ AI呼び出し（修正版：指示対応） ★★★ ---
+        // AI呼び出し
         async function callRealAiApi(originalText, instruction = null) {
             console.log("AIサーバーにリクエスト中:", originalText, "指示:", instruction);
-            
             const contextBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
             const context = contextBlocks.map(b => b.textContent).join('\n\n');
-            
             try {
                 const response = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
                     mode: 'cors',
                     headers: {'Content-Type': 'text/plain;charset=utf-t',},
-                    // ★★★ 修正点: moreRequest という変数名で送る ★★★
                     body: JSON.stringify({ 
                         originalText: originalText, 
                         context: context,
-                        moreRequest: instruction // ← GAS側と合わせる
+                        moreRequest: instruction 
                     })
                 });
 
@@ -350,28 +382,17 @@
         async function openAiModal() {
             const text = textInput.value;
             if (text.trim() === '') { alert('文章を入力してください。'); return; }
-            
-            // 元の文章をセット
             originalTextContent.textContent = text;
-            
             currentSuggestions = ["AIが考え中です...", "AIが考え中です...", "AIが考え中です..."];
             switchSuggestion(0);
             aiModal.style.display = 'block';
-            
-            // 初回リクエスト（指示なし）
             await callRealAiApi(text, null); 
         }
 
-        // --- ★★★ 追加指示の処理（本物） ★★★ ---
         async function handleAiMoreRequest(requestText) {
-            // UIを「考え中」に戻す
             currentSuggestions = [`「${requestText}」を踏まえて考え直しています...`, "考え中...", "考え中..."];
             switchSuggestion(0);
-            
-            // 元の文章を取得
             const originalText = originalTextContent.textContent;
-            
-            // 指示付きで再リクエスト
             await callRealAiApi(originalText, requestText);
         }
         
