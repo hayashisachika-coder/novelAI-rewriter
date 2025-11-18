@@ -76,7 +76,7 @@
         .modal-header { padding: 15px; border-bottom: 1px solid #eee; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         #close-modal { font-size: 24px; font-weight: bold; color: #aaa; cursor: pointer; padding: 5px; }
         
-        /* ★元の文章表示エリア (追加) */
+        /* 元の文章表示エリア */
         #original-text-area {
             padding: 10px 15px;
             background-color: #f7f7f7; /* 薄いグレー */
@@ -158,7 +158,7 @@
         const moreRequestInput = document.getElementById('more-request-input');
         const tabs = document.querySelectorAll('.tab');
         
-        // ★追加: 元の文章表示用
+        // 元の文章表示用
         const originalTextContent = document.getElementById('original-text-content');
 
         // --- グローバル変数 ---
@@ -167,7 +167,7 @@
         let editingBlockId = null; 
         const STORAGE_KEY = 'ai_novel_editor_data'; 
         
-        // ★★★ GAS URL ★★★
+        // ★★★ GAS URL (ここにあなたのURLを貼り付けてください) ★★★
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMCdYvJVs36E5I32cUSuqQox-1IP1L3MBQalQF_YXUF4hd1j0Bwlawvzxb_Qb38pc/exec"; 
         // ★★★★★★★★★★★
 
@@ -184,7 +184,9 @@
             
             moreRequestInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && e.target.value.trim() !== '') {
-                    handleAiMoreRequest_Dummy(e.target.value); e.target.value = '';
+                    // ★修正: 本物の関数を呼び出す
+                    handleAiMoreRequest(e.target.value); 
+                    e.target.value = '';
                 }
             });
             
@@ -305,18 +307,29 @@
              info.appendChild(textSpan); manuscriptArea.appendChild(info);
         }
 
-        // AI呼び出し
-        async function callRealAiApi(originalText) {
-            console.log("AIサーバーにリクエスト中:", originalText);
+        // --- ★★★ AI呼び出し（修正版：指示対応） ★★★ ---
+        async function callRealAiApi(originalText, instruction = null) {
+            console.log("AIサーバーにリクエスト中:", originalText, "指示:", instruction);
+            
             const contextBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
             const context = contextBlocks.map(b => b.textContent).join('\n\n');
+            
             try {
                 const response = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST', mode: 'cors', headers: {'Content-Type': 'text/plain;charset=utf-t',},
-                    body: JSON.stringify({ originalText: originalText, context: context })
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {'Content-Type': 'text/plain;charset=utf-t',},
+                    // ★★★ 修正点: moreRequest という変数名で送る ★★★
+                    body: JSON.stringify({ 
+                        originalText: originalText, 
+                        context: context,
+                        moreRequest: instruction // ← GAS側と合わせる
+                    })
                 });
+
                 if (!response.ok) { throw new Error(`サーバーエラー: ${response.statusText}`); }
                 const result = await response.json();
+                
                 if (result.success) {
                     const aiResponseText = result.suggestionText;
                     const suggestions = aiResponseText.split(/提案\d:/).map(s => s.trim()).filter(s => s.length > 0);
@@ -325,6 +338,7 @@
                         while (currentSuggestions.length < 3) { currentSuggestions.push("（提案はありません）"); }
                     } else { currentSuggestions = [aiResponseText, "（解析失敗）", "（解析失敗）"]; }
                 } else { throw new Error(`GASエラー: ${result.error}`); }
+
             } catch (error) {
                 console.error("AI呼び出しエラー:", error);
                 currentSuggestions = [`エラーが発生しました: ${error.message}`, "設定を確認してください。"];
@@ -337,14 +351,30 @@
             const text = textInput.value;
             if (text.trim() === '') { alert('文章を入力してください。'); return; }
             
-            // ★ここで元の文章をモーダル内にセット
+            // 元の文章をセット
             originalTextContent.textContent = text;
             
             currentSuggestions = ["AIが考え中です...", "AIが考え中です...", "AIが考え中です..."];
             switchSuggestion(0);
             aiModal.style.display = 'block';
-            await callRealAiApi(text); 
+            
+            // 初回リクエスト（指示なし）
+            await callRealAiApi(text, null); 
         }
+
+        // --- ★★★ 追加指示の処理（本物） ★★★ ---
+        async function handleAiMoreRequest(requestText) {
+            // UIを「考え中」に戻す
+            currentSuggestions = [`「${requestText}」を踏まえて考え直しています...`, "考え中...", "考え中..."];
+            switchSuggestion(0);
+            
+            // 元の文章を取得
+            const originalText = originalTextContent.textContent;
+            
+            // 指示付きで再リクエスト
+            await callRealAiApi(originalText, requestText);
+        }
+        
         function closeAiModal() { aiModal.style.display = 'none'; }
         function switchSuggestion(index) {
             currentSuggestionIndex = index;
@@ -354,9 +384,6 @@
         function handleAiDecision() {
             textInput.value = currentSuggestions[currentSuggestionIndex];
             autoResizeTextarea(); closeAiModal();
-        }
-        function handleAiMoreRequest_Dummy(requestText) {
-            alert(`「${requestText}」という指示ですね。 (現在はダミーです)`);
         }
         function autoResizeTextarea() {
             textInput.style.height = 'auto'; textInput.style.height = textInput.scrollHeight + 'px'; 
