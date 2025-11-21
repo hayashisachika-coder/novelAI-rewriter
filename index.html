@@ -10,9 +10,13 @@
             margin: 0; padding: 0; height: 100%;
             font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "MS PMincho", "serif";
             background-color: #f0f2f5;
+            /* ★追加: バウンススクロール防止（スマホでの操作感向上） */
+            overscroll-behavior: none; 
         }
         #app-container {
-            display: flex; flex-direction: column; height: 100vh;
+            display: flex; flex-direction: column;
+            /* ★変更: 100vhだとアドレスバー分はみ出るので、100dvh(動的高さ)に変更 */
+            height: 100dvh; 
             width: 100%; max-width: 600px; margin: 0 auto;
             background-color: #ffffff; box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
@@ -23,22 +27,20 @@
             font-size: 16px; font-weight: bold;
             display: flex; justify-content: space-between; align-items: center;
             border-bottom: 1px solid #ddd;
+            
+            /* ★★★ 追加: ヘッダーを常に上に固定する設定 ★★★ */
+            position: sticky;
+            top: 0;
+            z-index: 100; /* 原稿より手前に表示 */
         }
         
-        /* ボタンをまとめるラッパー (追加) */
-        .header-buttons {
-            display: flex;
-            gap: 10px; /* ボタン間の隙間 */
-        }
+        .header-buttons { display: flex; gap: 10px; }
 
-        /* ヘッダーボタン共通スタイル */
         .header-btn {
             background: none; border: 1px solid #ccc; border-radius: 5px;
             cursor: pointer; padding: 5px 10px; font-size: 18px; background-color: #fff;
         }
         .header-btn:active { background-color: #e0e0e0; }
-        
-        /* 全消去ボタンだけ赤っぽくする（危険な操作なので） */
         #clear-all-btn:active { background-color: #ffebee; border-color: #ffcdd2; }
 
         #char-count {
@@ -68,6 +70,10 @@
         #writing-area {
             display: flex; align-items: flex-end; padding: 10px;
             border-top: 1px solid #ddd; background-color: #f9f9f9;
+            /* ★追加: ここも念のため固定（通常はFlexboxで固定されるが念の為） */
+            position: sticky;
+            bottom: 0;
+            z-index: 100;
         }
         #text-input {
             flex-grow: 1; font-size: 16px; padding: 10px 12px; border: 1px solid #ccc;
@@ -82,17 +88,14 @@
         #confirm-btn { background-color: #4A90E2; color: white; }
 
         /* --- AIモーダル --- */
-        #ai-modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: slideIn 0.3s ease-out; }
+        #ai-modal { display: none; position: fixed; z-index: 200; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .modal-content { position: absolute; bottom: 0; width: 100%; height: 90vh; max-width: 600px; left: 50%; transform: translateX(-50%); background-color: #ffffff; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; }
         .modal-header { padding: 15px; border-bottom: 1px solid #eee; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         #close-modal { font-size: 24px; font-weight: bold; color: #aaa; cursor: pointer; padding: 5px; }
         
-        /* 元の文章表示エリア */
         #original-text-area {
-            padding: 10px 15px;
-            background-color: #f7f7f7;
-            border-bottom: 1px solid #eee;
+            padding: 10px 15px; background-color: #f7f7f7; border-bottom: 1px solid #eee;
             max-height: 100px; overflow-y: auto;
         }
         .original-label { font-size: 12px; font-weight: bold; color: #888; display: block; margin-bottom: 5px; }
@@ -160,7 +163,7 @@
         const manuscriptArea = document.getElementById('manuscript-area');
         const charCountDisplay = document.getElementById('char-count');
         const copyAllBtn = document.getElementById('copy-all-btn');
-        const clearAllBtn = document.getElementById('clear-all-btn'); // ★追加
+        const clearAllBtn = document.getElementById('clear-all-btn');
         
         const aiModal = document.getElementById('ai-modal');
         const closeModalBtn = document.getElementById('close-modal');
@@ -201,32 +204,20 @@
             
             manuscriptArea.addEventListener('click', handleBlockClick);
             copyAllBtn.addEventListener('click', handleCopyAll);
-            
-            // ★追加: 全消去ボタンのイベント
             clearAllBtn.addEventListener('click', handleClearAll);
         });
 
         // --- 関数 ---
 
-        // ★追加: 全消去機能
+        // 全消去機能
         function handleClearAll() {
-            // 確認ダイアログを表示
             if (confirm('本当に全ての文章を削除しますか？\nこの操作は取り消せません。')) {
-                // 1. ローカルストレージを削除
                 localStorage.removeItem(STORAGE_KEY);
-                
-                // 2. 画面上のブロックを全削除
                 manuscriptArea.innerHTML = '';
-                
-                // 3. 編集状態などの変数をリセット
                 editingBlockId = null;
                 textInput.value = '';
                 autoResizeTextarea();
-                
-                // 4. 案内文を再表示
                 addInfoBlock();
-                
-                // 5. 文字数をリセット
                 updateCharCount();
             }
         }
