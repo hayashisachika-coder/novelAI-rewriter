@@ -53,33 +53,45 @@
         /* ブロック本体 */
         .manuscript-block {
             padding: 10px 0; 
-            display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+            display: flex; justify-content: space-between; 
+            align-items: center; /* 縦方向は中央揃え（お好みで flex-start にしてもOK） */
+            gap: 15px; /* 文章とボタンの間の余白 */
         }
         .block-text { flex-grow: 1; word-wrap: break-word; white-space: pre-wrap; }
         
-        /* ボタン類をまとめるラッパー */
+        /* ★変更: ボタン類を縦に並べる */
         .block-actions {
-            display: flex; gap: 5px; flex-shrink: 0;
+            display: flex; 
+            flex-direction: column; /* 縦並び */
+            gap: 8px; /* ボタン同士の間隔 */
+            flex-shrink: 0;
             opacity: 0.3; transition: opacity 0.2s;
         }
         /* ホバー時にボタンをはっきり表示 */
         .manuscript-block:hover .block-actions { opacity: 1; }
 
-        /* 個別の操作ボタン */
+        /* ★変更: ボタンを丸くする */
         .action-icon-btn {
-            padding: 5px; cursor: pointer; border-radius: 4px;
-            min-width: 24px; text-align: center; font-family: sans-serif;
-            background-color: transparent; border: none; font-size: 16px;
+            width: 32px; height: 32px; /* 正方形にする */
+            border-radius: 50%; /* 完全な丸 */
+            border: 1px solid #eee; /* 薄い枠線 */
+            background-color: #fff;
+            
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; 
+            font-size: 14px;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* ほんのり影 */
         }
-        .action-icon-btn:hover { background-color: #f0f0f0; }
+        .action-icon-btn:hover { background-color: #f0f0f0; border-color: #ccc; }
         
         /* 削除ボタンだけホバー時に赤く */
-        .delete-button:hover { background-color: #ffebee; color: #d32f2f; }
+        .delete-button:hover { background-color: #ffebee; color: #d32f2f; border-color: #ffcdd2; }
         
         .manuscript-block.info { color: #888; cursor: default; border-bottom: 1px solid #eee; }
         .manuscript-block.is-editing { background-color: #e3f2fd; border-radius: 5px; padding-left: 5px; padding-right: 5px;}
 
-        /* 挿入用エリア（ブロック間の隙間） */
+        /* 挿入用エリア */
         .insert-gap {
             height: 24px; display: flex; align-items: center; justify-content: center;
             cursor: pointer; position: relative; margin: 5px 0;
@@ -336,17 +348,14 @@
             textSpan.className = 'block-text';
             textSpan.textContent = text;
 
-            // ★変更: ボタンをまとめるdivを作成
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'block-actions';
 
-            // 編集ボタン
             const editBtn = document.createElement('button');
             editBtn.className = 'action-icon-btn edit-button';
             editBtn.textContent = '✏️';
             editBtn.title = "編集";
 
-            // ★追加: 削除ボタン
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'action-icon-btn delete-button';
             deleteBtn.textContent = '🗑️';
@@ -358,7 +367,6 @@
             block.appendChild(textSpan);
             block.appendChild(actionsDiv);
 
-            // 隙間（挿入ボタン）作成
             const gap = document.createElement('div');
             gap.className = 'insert-gap';
             gap.dataset.prevId = block.dataset.id;
@@ -376,9 +384,8 @@
             }
         }
         
-        // --- クリック処理（編集・削除・挿入） ---
+        // --- クリック処理 ---
         function handleAreaClick(event) {
-            // A. 編集ボタン
             const editBtn = event.target.closest('.edit-button');
             if (editBtn) {
                 const block = editBtn.closest('.manuscript-block');
@@ -391,30 +398,21 @@
                 return;
             }
 
-            // B. 削除ボタン (★追加)
             const deleteBtn = event.target.closest('.delete-button');
             if (deleteBtn) {
                 const block = deleteBtn.closest('.manuscript-block');
                 if (!block || block.classList.contains('info')) return;
                 
                 if (confirm("この段落を削除しますか？")) {
-                    // 下にあるgapも一緒に消す必要がある
                     const nextGap = block.nextElementSibling;
-                    if (nextGap && nextGap.classList.contains('insert-gap')) {
-                        nextGap.remove();
-                    }
+                    if (nextGap && nextGap.classList.contains('insert-gap')) { nextGap.remove(); }
                     block.remove();
-                    
-                    // 編集中だったものを消した場合のリセット
-                    if (editingBlockId === block.dataset.id) {
-                        resetInputState();
-                    }
+                    if (editingBlockId === block.dataset.id) { resetInputState(); }
                     saveManuscript();
                 }
                 return;
             }
 
-            // C. 挿入ギャップ
             const gap = event.target.closest('.insert-gap');
             if (gap) {
                 if (gap.classList.contains('active')) { resetInputState(); return; }
