@@ -333,11 +333,39 @@
              info.appendChild(textSpan); manuscriptArea.appendChild(info);
         }
 
-        // AI呼び出し
+// --- ★★★ AI呼び出し（文脈の精度向上版） ★★★ ---
         async function callRealAiApi(originalText, instruction = null) {
             console.log("AIサーバーにリクエスト中:", originalText, "指示:", instruction);
-            const contextBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
-            const context = contextBlocks.map(b => b.textContent).join('\n\n');
+            
+            // 全ブロックのテキスト要素を取得
+            const allBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info)'));
+            
+            let contextString = "";
+
+            if (editingBlockId) {
+                // 【編集中】の場合：編集中のブロックを除外して「前」と「後」に分ける
+                const currentIndex = allBlocks.findIndex(b => b.dataset.id === editingBlockId);
+                
+                // 前の文脈
+                const prevText = allBlocks.slice(0, currentIndex)
+                                          .map(b => b.querySelector('.block-text').textContent)
+                                          .join('\n');
+                // 後の文脈
+                const nextText = allBlocks.slice(currentIndex + 1)
+                                          .map(b => b.querySelector('.block-text').textContent)
+                                          .join('\n');
+                
+                // AIに分かりやすいようにラベルを付けて結合
+                contextString = `【直前の文脈】\n${prevText}\n\n【直後の文脈】\n${nextText}`;
+                
+            } else {
+                // 【新規作成】の場合：今あるすべてが「前の文脈」
+                const allText = allBlocks.map(b => b.querySelector('.block-text').textContent).join('\n');
+                contextString = `【これまでの文脈】\n${allText}`;
+            }
+
+            console.log("送信する整理された文脈:\n", contextString);
+
             try {
                 const response = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
@@ -345,7 +373,7 @@
                     headers: {'Content-Type': 'text/plain;charset=utf-t',},
                     body: JSON.stringify({ 
                         originalText: originalText, 
-                        context: context,
+                        context: contextString, // ★整理した文脈を送る
                         moreRequest: instruction 
                     })
                 });
@@ -404,3 +432,4 @@
     </script>
 </body>
 </html>
+
