@@ -27,10 +27,8 @@
             border-bottom: 1px solid #ddd;
             position: sticky; top: 0; z-index: 100;
         }
-        
         .header-left { display: flex; align-items: center; gap: 10px; }
         .header-right { display: flex; align-items: center; gap: 10px; }
-
         .header-btn {
             background: none; border: 1px solid #ccc; border-radius: 5px;
             cursor: pointer; padding: 5px 10px; font-size: 18px; background-color: #fff;
@@ -49,53 +47,57 @@
         #manuscript-area {
             flex-grow: 1; overflow-y: auto; padding: 20px;
             background-color: #ffffff; font-size: 16px; line-height: 1.8;
-            padding-bottom: 50px; /* 下部に余裕を持たせる */
+            padding-bottom: 50px; 
         }
         
         /* ブロック本体 */
         .manuscript-block {
             padding: 10px 0; 
-            /* border-bottomは削除し、挿入エリアで区切る形に変更 */
             display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
         }
         .block-text { flex-grow: 1; word-wrap: break-word; white-space: pre-wrap; }
         
-        .edit-button {
-            flex-shrink: 0; padding: 5px; cursor: pointer; border-radius: 4px;
-            min-width: 20px; text-align: center; font-family: sans-serif; opacity: 0.3; transition: opacity 0.2s;
+        /* ボタン類をまとめるラッパー */
+        .block-actions {
+            display: flex; gap: 5px; flex-shrink: 0;
+            opacity: 0.3; transition: opacity 0.2s;
         }
-        .manuscript-block:hover .edit-button { opacity: 1; } /* ホバー時のみ濃く */
-        .edit-button:hover { background-color: #f0f0f0; opacity: 1; }
+        /* ホバー時にボタンをはっきり表示 */
+        .manuscript-block:hover .block-actions { opacity: 1; }
+
+        /* 個別の操作ボタン */
+        .action-icon-btn {
+            padding: 5px; cursor: pointer; border-radius: 4px;
+            min-width: 24px; text-align: center; font-family: sans-serif;
+            background-color: transparent; border: none; font-size: 16px;
+        }
+        .action-icon-btn:hover { background-color: #f0f0f0; }
+        
+        /* 削除ボタンだけホバー時に赤く */
+        .delete-button:hover { background-color: #ffebee; color: #d32f2f; }
         
         .manuscript-block.info { color: #888; cursor: default; border-bottom: 1px solid #eee; }
         .manuscript-block.is-editing { background-color: #e3f2fd; border-radius: 5px; padding-left: 5px; padding-right: 5px;}
 
-        /* ★★★ 追加: 挿入用エリア（ブロック間の隙間） ★★★ */
+        /* 挿入用エリア（ブロック間の隙間） */
         .insert-gap {
-            height: 24px; /* タップしやすい高さ */
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            position: relative;
-            margin: 5px 0;
+            height: 24px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; position: relative; margin: 5px 0;
         }
-        /* 普段はうっすらした線 */
         .insert-gap::before {
             content: ""; position: absolute; width: 100%; height: 1px; 
             background-color: #eee; transition: background-color 0.2s;
         }
-        /* ＋ボタン */
         .insert-btn {
             z-index: 1; background-color: #fff; color: #ccc; border: 1px solid #eee;
             width: 20px; height: 20px; border-radius: 50%; 
             display: flex; align-items: center; justify-content: center;
             font-size: 14px; transition: all 0.2s;
         }
-        /* ホバー時やアクティブ時 */
         .insert-gap:hover::before, .insert-gap.active::before { background-color: #4A90E2; }
         .insert-gap:hover .insert-btn, .insert-gap.active .insert-btn {
             background-color: #4A90E2; color: white; border-color: #4A90E2; transform: scale(1.2);
         }
-        /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
 
         /* --- 執筆エリア --- */
         #writing-area {
@@ -108,10 +110,7 @@
             border-radius: 20px; margin-right: 8px; resize: none; max-height: 120px; overflow-y: auto;
             font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "MS PMincho", "serif";
         }
-        /* 挿入モード時の入力欄スタイル */
-        #text-input.insert-mode {
-            border: 2px solid #4A90E2; background-color: #f0f8ff;
-        }
+        #text-input.insert-mode { border: 2px solid #4A90E2; background-color: #f0f8ff; }
         
         .action-button {
             display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;
@@ -120,7 +119,7 @@
         #ai-btn { background-color: #8E44AD; color: white; margin-right: 5px; }
         #confirm-btn { background-color: #4A90E2; color: white; }
 
-        /* --- モーダル共通 --- */
+        /* --- モーダル --- */
         .modal { display: none; position: fixed; z-index: 200; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .modal-content { position: absolute; bottom: 0; width: 100%; height: 90vh; max-width: 600px; left: 50%; transform: translateX(-50%); background-color: #ffffff; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; }
@@ -241,10 +240,10 @@
         // --- グローバル変数 ---
         let currentSuggestions = []; 
         let currentSuggestionIndex = 0; 
-        let editingBlockId = null; // 編集中のID
-        let insertTargetId = null; // ★追加: 挿入先の基準ID（このブロックの後ろに追加）
+        let editingBlockId = null; 
+        let insertTargetId = null; 
 
-        // ★★★ GAS URL ★★★
+        // ★★★ GAS URL (ここにあなたのURL) ★★★
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMCdYvJVs36E5I32cUSuqQox-1IP1L3MBQalQF_YXUF4hd1j0Bwlawvzxb_Qb38pc/exec"; 
 
         const STORY_INDEX_KEY = 'ai_novel_story_index'; 
@@ -267,7 +266,7 @@
                 }
             });
 
-            manuscriptArea.addEventListener('click', handleAreaClick); // ★変更: エリア全体のクリックを管理
+            manuscriptArea.addEventListener('click', handleAreaClick); 
             copyAllBtn.addEventListener('click', handleCopyAll);
             clearAllBtn.addEventListener('click', handleClearAll);
             
@@ -277,17 +276,11 @@
             currentTitleSpan.addEventListener('click', handleChangeTitle);
         });
 
-        // --- ★★★ 確定ボタンの処理（挿入・編集・新規） ★★★ ---
+        // --- 確定ボタン処理 ---
         function handleConfirm() {
             const text = textInput.value;
-            
-            // 空送信時のキャンセル処理
-            if (text.trim() === '') {
-                resetInputState();
-                return;
-            }
+            if (text.trim() === '') { resetInputState(); return; }
 
-            // 1. 既存ブロックの編集
             if (editingBlockId) {
                 const editingBlock = document.querySelector(`[data-id="${editingBlockId}"]`);
                 if (editingBlock) {
@@ -297,27 +290,19 @@
                 }
                 editingBlockId = null;
             } 
-            // 2. 途中挿入
             else if (insertTargetId) {
-                // 基準となるブロック（gapの直前のブロック）を探す
                 const targetBlock = document.querySelector(`[data-id="${insertTargetId}"]`);
-                // そのブロックの次の次（gapの次）が本来の挿入位置だが、
-                // DOM的には targetBlock の「直後のgap」のさらに後ろに追加したい。
-                // insertBeforeを使うため、「ターゲットの次の次の要素（次のブロック）」を取得
                 if (targetBlock) {
-                    const targetGap = targetBlock.nextElementSibling; // これがgap
+                    const targetGap = targetBlock.nextElementSibling; 
                     const nextBlock = targetGap ? targetGap.nextElementSibling : null;
-                    
-                    addManuscriptBlockDOM(text, nextBlock); // nextBlockの前に挿入
+                    addManuscriptBlockDOM(text, nextBlock); 
                 } else {
-                    addManuscriptBlockDOM(text); // 見つからなければ最後尾
+                    addManuscriptBlockDOM(text); 
                 }
                 resetInputState();
             }
-            // 3. 新規追加（最後尾）
             else {
                 addManuscriptBlockDOM(text);
-                // 新規追加時のみスクロール
                 manuscriptArea.scrollTop = manuscriptArea.scrollHeight;
             }
             
@@ -325,15 +310,12 @@
             saveManuscript();
         }
 
-        // 入力状態のリセット
         function resetInputState() {
-            // 編集解除
             if (editingBlockId) {
                 const b = document.querySelector(`[data-id="${editingBlockId}"]`);
                 if (b) b.classList.remove('is-editing');
                 editingBlockId = null;
             }
-            // 挿入モード解除
             if (insertTargetId) {
                 const gaps = document.querySelectorAll('.insert-gap');
                 gaps.forEach(g => g.classList.remove('active'));
@@ -341,14 +323,11 @@
                 textInput.classList.remove('insert-mode');
                 textInput.placeholder = "文章を入力...";
             }
-            textInput.value = '';
-            autoResizeTextarea();
+            textInput.value = ''; autoResizeTextarea();
         }
 
-        // --- ★★★ DOM生成（ブロック＋隙間） ★★★ ---
-        // insertBeforeElement があればその前に挿入、なければ最後尾に追加
+        // --- DOM生成 ---
         function addManuscriptBlockDOM(text, insertBeforeElement = null) {
-            // 1. 原稿ブロック作成
             const block = document.createElement('div');
             block.className = 'manuscript-block';
             block.dataset.id = `block-${Date.now()}-${Math.random()}`;
@@ -357,24 +336,37 @@
             textSpan.className = 'block-text';
             textSpan.textContent = text;
 
-            const editBtn = document.createElement('span');
-            editBtn.className = 'edit-button';
+            // ★変更: ボタンをまとめるdivを作成
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'block-actions';
+
+            // 編集ボタン
+            const editBtn = document.createElement('button');
+            editBtn.className = 'action-icon-btn edit-button';
             editBtn.textContent = '✏️';
+            editBtn.title = "編集";
+
+            // ★追加: 削除ボタン
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'action-icon-btn delete-button';
+            deleteBtn.textContent = '🗑️';
+            deleteBtn.title = "削除";
+
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(deleteBtn);
 
             block.appendChild(textSpan);
-            block.appendChild(editBtn);
+            block.appendChild(actionsDiv);
 
-            // 2. その下の隙間（挿入ボタン）作成
+            // 隙間（挿入ボタン）作成
             const gap = document.createElement('div');
             gap.className = 'insert-gap';
-            gap.dataset.prevId = block.dataset.id; // どのブロックの下か
-            
+            gap.dataset.prevId = block.dataset.id;
             const gapBtn = document.createElement('div');
             gapBtn.className = 'insert-btn';
             gapBtn.textContent = '+';
             gap.appendChild(gapBtn);
 
-            // 3. 挿入実行
             if (insertBeforeElement) {
                 manuscriptArea.insertBefore(block, insertBeforeElement);
                 manuscriptArea.insertBefore(gap, insertBeforeElement);
@@ -384,16 +376,14 @@
             }
         }
         
-        // --- ★★★ クリックハンドリング（編集ボタン or 挿入ボタン） ★★★ ---
+        // --- クリック処理（編集・削除・挿入） ---
         function handleAreaClick(event) {
-            // A. 編集ボタンクリック
+            // A. 編集ボタン
             const editBtn = event.target.closest('.edit-button');
             if (editBtn) {
                 const block = editBtn.closest('.manuscript-block');
                 if (!block || block.classList.contains('info')) return;
-                
-                resetInputState(); // 他の状態をクリア
-                
+                resetInputState();
                 editingBlockId = block.dataset.id;
                 block.classList.add('is-editing');
                 textInput.value = block.querySelector('.block-text').textContent;
@@ -401,20 +391,36 @@
                 return;
             }
 
-            // B. 挿入ギャップクリック
+            // B. 削除ボタン (★追加)
+            const deleteBtn = event.target.closest('.delete-button');
+            if (deleteBtn) {
+                const block = deleteBtn.closest('.manuscript-block');
+                if (!block || block.classList.contains('info')) return;
+                
+                if (confirm("この段落を削除しますか？")) {
+                    // 下にあるgapも一緒に消す必要がある
+                    const nextGap = block.nextElementSibling;
+                    if (nextGap && nextGap.classList.contains('insert-gap')) {
+                        nextGap.remove();
+                    }
+                    block.remove();
+                    
+                    // 編集中だったものを消した場合のリセット
+                    if (editingBlockId === block.dataset.id) {
+                        resetInputState();
+                    }
+                    saveManuscript();
+                }
+                return;
+            }
+
+            // C. 挿入ギャップ
             const gap = event.target.closest('.insert-gap');
             if (gap) {
-                // すでにアクティブなら解除
-                if (gap.classList.contains('active')) {
-                    resetInputState();
-                    return;
-                }
-                
-                resetInputState(); // 他の状態をクリア
-                
+                if (gap.classList.contains('active')) { resetInputState(); return; }
+                resetInputState();
                 insertTargetId = gap.dataset.prevId;
                 gap.classList.add('active');
-                
                 textInput.classList.add('insert-mode');
                 textInput.placeholder = "ここに挿入する文章を入力...";
                 textInput.focus();
@@ -422,15 +428,12 @@
             }
         }
 
-
-        // --- 作品管理・保存関連 ---
-
+        // --- 作品管理・保存 ---
         function initializeEditor() {
             const indexData = localStorage.getItem(STORY_INDEX_KEY);
             let storyList = indexData ? JSON.parse(indexData) : [];
-            if (storyList.length === 0) {
-                createAndSwitchToNewStory();
-            } else {
+            if (storyList.length === 0) { createAndSwitchToNewStory(); } 
+            else {
                 const lastId = localStorage.getItem('ai_novel_last_open_id');
                 const targetId = storyList.find(s => s.id === lastId) ? lastId : storyList[0].id;
                 switchStory(targetId);
@@ -463,25 +466,13 @@
             storyList.forEach(story => {
                 const item = document.createElement('div');
                 item.className = `story-item ${story.id === currentStoryId ? 'active' : ''}`;
-                
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'story-info';
-                infoDiv.onclick = () => switchStory(story.id);
-
-                const titleSpan = document.createElement('span');
-                titleSpan.className = 'story-title';
-                titleSpan.textContent = story.title;
-                const dateSpan = document.createElement('span');
-                dateSpan.className = 'story-date';
-                const date = new Date(story.lastModified);
-                dateSpan.textContent = `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes()}`;
-
+                const infoDiv = document.createElement('div'); infoDiv.className = 'story-info'; infoDiv.onclick = () => switchStory(story.id);
+                const titleSpan = document.createElement('span'); titleSpan.className = 'story-title'; titleSpan.textContent = story.title;
+                const dateSpan = document.createElement('span'); dateSpan.className = 'story-date';
+                const date = new Date(story.lastModified); dateSpan.textContent = `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes()}`;
                 infoDiv.appendChild(titleSpan); infoDiv.appendChild(dateSpan);
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'story-delete-btn';
-                deleteBtn.textContent = '削除';
+                const deleteBtn = document.createElement('button'); deleteBtn.className = 'story-delete-btn'; deleteBtn.textContent = '削除';
                 deleteBtn.onclick = (e) => { e.stopPropagation(); deleteStory(story.id); };
-
                 item.appendChild(infoDiv); item.appendChild(deleteBtn);
                 storyListContainer.appendChild(item);
             });
@@ -511,13 +502,10 @@
         function handleClearAll() {
             if (confirm('現在の作品の文章を全て削除しますか？')) {
                 localStorage.removeItem(currentStoryId);
-                manuscriptArea.innerHTML = ''; 
-                resetInputState();
-                addInfoBlock(); updateCharCount();
+                manuscriptArea.innerHTML = ''; resetInputState(); addInfoBlock(); updateCharCount();
             }
         }
 
-        // 保存・読み込み
         function saveManuscript() {
             if (!currentStoryId) return;
             const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
@@ -534,9 +522,8 @@
             const savedData = localStorage.getItem(storyId);
             if (savedData) {
                 const blockTexts = JSON.parse(savedData);
-                if (blockTexts.length > 0) {
-                    blockTexts.forEach(text => addManuscriptBlockDOM(text)); // 読み込み時は末尾追加でOK
-                } else { addInfoBlock(); }
+                if (blockTexts.length > 0) { blockTexts.forEach(text => addManuscriptBlockDOM(text)); } 
+                else { addInfoBlock(); }
             } else { addInfoBlock(); }
             updateCharCount();
         }
@@ -544,20 +531,12 @@
         function addInfoBlock() {
              const info = document.createElement('div');
              info.className = 'manuscript-block info';
-             const textSpan = document.createElement('span');
-             textSpan.className = 'block-text';
-             textSpan.textContent = '（ここに文章が積み上がります）';
+             const textSpan = document.createElement('span'); textSpan.className = 'block-text'; textSpan.textContent = '（ここに文章が積み上がります）';
              info.appendChild(textSpan); 
-             
-             // infoブロックの下にも一応gapをつけておく（先頭挿入用として使える）
-             const gap = document.createElement('div');
-             gap.className = 'insert-gap';
-             gap.dataset.prevId = 'info'; // infoの下
+             const gap = document.createElement('div'); gap.className = 'insert-gap'; gap.dataset.prevId = 'info';
              const gapBtn = document.createElement('div'); gapBtn.className = 'insert-btn'; gapBtn.textContent = '+';
              gap.appendChild(gapBtn);
-             
-             manuscriptArea.appendChild(info);
-             manuscriptArea.appendChild(gap);
+             manuscriptArea.appendChild(info); manuscriptArea.appendChild(gap);
         }
 
         function updateCharCount() {
@@ -569,15 +548,13 @@
             const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
             if (blocks.length === 0) { alert('文章がありません'); return; }
             const allText = blocks.map(block => block.textContent).join('\n');
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(allText).then(() => alert('コピーしました')).catch(() => fallbackCopy(allText));
-            } else { fallbackCopy(allText); }
+            if (navigator.clipboard) { navigator.clipboard.writeText(allText).then(() => alert('コピーしました')).catch(() => fallbackCopy(allText)); } 
+            else { fallbackCopy(allText); }
         }
         function fallbackCopy(text) {
             const ta = document.createElement("textarea"); ta.value = text;
             ta.style.position = "fixed"; ta.style.left = "-9999px"; document.body.appendChild(ta);
-            ta.focus(); ta.select(); try { document.execCommand('copy'); alert('コピーしました'); } catch(e){}
-            document.body.removeChild(ta);
+            ta.focus(); ta.select(); try { document.execCommand('copy'); alert('コピーしました'); } catch(e){} document.body.removeChild(ta);
         }
 
         // --- AI機能 ---
@@ -590,9 +567,7 @@
                 const next = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
                 contextString = `【直前の文脈】\n${prev}\n\n【直後の文脈】\n${next}`;
             } else if (insertTargetId) {
-                // 挿入モードの場合の文脈
                 const idx = allBlocks.findIndex(b => b.dataset.id === insertTargetId);
-                // insertTargetId は「このブロックの後」なので、そこまでが「前」
                 const prev = allBlocks.slice(0, idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
                 const next = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
                 contextString = `【直前の文脈】\n${prev}\n\n【直後の文脈】\n${next}`;
