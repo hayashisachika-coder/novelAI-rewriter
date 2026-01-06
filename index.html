@@ -36,13 +36,10 @@
             cursor: pointer; padding: 5px 10px; font-size: 18px; background-color: #fff;
         }
         .header-btn:active { background-color: #e0e0e0; }
-        
-        /* タイトル表示エリア */
         #current-title {
             font-size: 14px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             cursor: pointer; border-bottom: 1px dotted #999;
         }
-
         #char-count {
             font-size: 12px; font-weight: normal; color: #666;
             background-color: #eee; padding: 4px 8px; border-radius: 10px;
@@ -52,19 +49,53 @@
         #manuscript-area {
             flex-grow: 1; overflow-y: auto; padding: 20px;
             background-color: #ffffff; font-size: 16px; line-height: 1.8;
+            padding-bottom: 50px; /* 下部に余裕を持たせる */
         }
+        
+        /* ブロック本体 */
         .manuscript-block {
-            padding: 10px 0; border-bottom: 1px dashed #ccc;
+            padding: 10px 0; 
+            /* border-bottomは削除し、挿入エリアで区切る形に変更 */
             display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
         }
         .block-text { flex-grow: 1; word-wrap: break-word; white-space: pre-wrap; }
+        
         .edit-button {
             flex-shrink: 0; padding: 5px; cursor: pointer; border-radius: 4px;
-            min-width: 20px; text-align: center; font-family: sans-serif;
+            min-width: 20px; text-align: center; font-family: sans-serif; opacity: 0.3; transition: opacity 0.2s;
         }
-        .edit-button:hover { background-color: #f0f0f0; }
-        .manuscript-block.info { color: #888; cursor: default; }
-        .manuscript-block.is-editing { background-color: #f0f8ff; }
+        .manuscript-block:hover .edit-button { opacity: 1; } /* ホバー時のみ濃く */
+        .edit-button:hover { background-color: #f0f0f0; opacity: 1; }
+        
+        .manuscript-block.info { color: #888; cursor: default; border-bottom: 1px solid #eee; }
+        .manuscript-block.is-editing { background-color: #e3f2fd; border-radius: 5px; padding-left: 5px; padding-right: 5px;}
+
+        /* ★★★ 追加: 挿入用エリア（ブロック間の隙間） ★★★ */
+        .insert-gap {
+            height: 24px; /* タップしやすい高さ */
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            position: relative;
+            margin: 5px 0;
+        }
+        /* 普段はうっすらした線 */
+        .insert-gap::before {
+            content: ""; position: absolute; width: 100%; height: 1px; 
+            background-color: #eee; transition: background-color 0.2s;
+        }
+        /* ＋ボタン */
+        .insert-btn {
+            z-index: 1; background-color: #fff; color: #ccc; border: 1px solid #eee;
+            width: 20px; height: 20px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; transition: all 0.2s;
+        }
+        /* ホバー時やアクティブ時 */
+        .insert-gap:hover::before, .insert-gap.active::before { background-color: #4A90E2; }
+        .insert-gap:hover .insert-btn, .insert-gap.active .insert-btn {
+            background-color: #4A90E2; color: white; border-color: #4A90E2; transform: scale(1.2);
+        }
+        /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
 
         /* --- 執筆エリア --- */
         #writing-area {
@@ -77,6 +108,11 @@
             border-radius: 20px; margin-right: 8px; resize: none; max-height: 120px; overflow-y: auto;
             font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "MS PMincho", "serif";
         }
+        /* 挿入モード時の入力欄スタイル */
+        #text-input.insert-mode {
+            border: 2px solid #4A90E2; background-color: #f0f8ff;
+        }
+        
         .action-button {
             display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;
             border-radius: 50%; border: none; cursor: pointer; font-size: 20px; flex-shrink: 0;
@@ -91,7 +127,7 @@
         .modal-header { padding: 15px; border-bottom: 1px solid #eee; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .close-modal-btn { font-size: 24px; font-weight: bold; color: #aaa; cursor: pointer; padding: 5px; }
 
-        /* --- AIモーダルの中身 --- */
+        /* AIモーダル */
         #original-text-area { padding: 10px 15px; background-color: #f7f7f7; border-bottom: 1px solid #eee; max-height: 100px; overflow-y: auto; }
         .original-label { font-size: 12px; font-weight: bold; color: #888; display: block; margin-bottom: 5px; }
         #original-text-content { font-size: 14px; color: #555; white-space: pre-wrap; }
@@ -103,22 +139,16 @@
         #more-request-input { width: calc(100% - 24px); padding: 10px 12px; border: 1px solid #ccc; border-radius: 20px; margin-bottom: 10px; }
         #decision-btn { width: 100%; padding: 15px; background-color: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
 
-        /* --- 作品一覧モーダルの中身 --- */
+        /* 作品一覧モーダル */
         #story-list-container { flex-grow: 1; overflow-y: auto; padding: 10px; }
-        .story-item {
-            padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-        }
+        .story-item { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .story-item:hover { background-color: #f9f9f9; }
         .story-item.active { background-color: #f0f8ff; border-left: 5px solid #4A90E2; }
         .story-info { flex-grow: 1; }
         .story-title { font-weight: bold; font-size: 16px; display: block; margin-bottom: 4px; }
         .story-date { font-size: 12px; color: #888; }
-        .story-delete-btn {
-            padding: 8px 12px; background-color: #ffebee; color: #d32f2f; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; margin-left: 10px;
-        }
-        #create-new-story-btn {
-            width: 100%; padding: 15px; background-color: #4A90E2; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;
-        }
+        .story-delete-btn { padding: 8px 12px; background-color: #ffebee; color: #d32f2f; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; margin-left: 10px; }
+        #create-new-story-btn { width: 100%; padding: 15px; background-color: #4A90E2; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
 
     </style>
 </head>
@@ -133,6 +163,7 @@
             
             <div class="header-right">
                 <button id="copy-all-btn" class="header-btn" title="全文コピー">📋</button>
+                <button id="clear-all-btn" class="header-btn" title="全消去">🗑️</button>
                 <span id="char-count">0文字</span>
             </div>
         </header>
@@ -175,8 +206,7 @@
                 <span>作品一覧</span>
                 <span id="close-story-modal" class="close-modal-btn">×</span>
             </div>
-            <div id="story-list-container">
-                </div>
+            <div id="story-list-container"></div>
             <div class="modal-footer">
                 <button id="create-new-story-btn">＋ 新しい作品を作成</button>
             </div>
@@ -191,10 +221,10 @@
         const manuscriptArea = document.getElementById('manuscript-area');
         const charCountDisplay = document.getElementById('char-count');
         const copyAllBtn = document.getElementById('copy-all-btn');
+        const clearAllBtn = document.getElementById('clear-all-btn');
         const menuBtn = document.getElementById('menu-btn');
         const currentTitleSpan = document.getElementById('current-title');
         
-        // AIモーダル
         const aiModal = document.getElementById('ai-modal');
         const closeAiModalBtn = document.getElementById('close-ai-modal');
         const suggestionText = document.getElementById('suggestion-text');
@@ -203,7 +233,6 @@
         const tabs = document.querySelectorAll('.tab');
         const originalTextContent = document.getElementById('original-text-content');
 
-        // 作品一覧モーダル
         const storyListModal = document.getElementById('story-list-modal');
         const closeStoryModalBtn = document.getElementById('close-story-modal');
         const storyListContainer = document.getElementById('story-list-container');
@@ -212,25 +241,22 @@
         // --- グローバル変数 ---
         let currentSuggestions = []; 
         let currentSuggestionIndex = 0; 
-        let editingBlockId = null; 
-        
-        // ★★★ GAS URL (ご自身のものを設定) ★★★
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMCdYvJVs36E5I32cUSuqQox-1IP1L3MBQalQF_YXUF4hd1j0Bwlawvzxb_Qb38pc/exec"; 
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★
+        let editingBlockId = null; // 編集中のID
+        let insertTargetId = null; // ★追加: 挿入先の基準ID（このブロックの後ろに追加）
 
-        // --- データ管理用の変数 ---
-        const STORY_INDEX_KEY = 'ai_novel_story_index'; // 作品リスト保存用キー
-        let currentStoryId = null; // 現在開いている作品ID
+        // ★★★ GAS URL ★★★
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMCdYvJVs36E5I32cUSuqQox-1IP1L3MBQalQF_YXUF4hd1j0Bwlawvzxb_Qb38pc/exec"; 
+
+        const STORY_INDEX_KEY = 'ai_novel_story_index'; 
+        let currentStoryId = null;
 
         // --- イベントリスナー ---
         document.addEventListener('DOMContentLoaded', () => {
-            // 初期化: 作品リストを確認し、なければ新規作成、あれば最後の作品を開く
             initializeEditor();
 
             textInput.addEventListener('input', autoResizeTextarea);
             confirmBtn.addEventListener('click', handleConfirm);
             
-            // AI関連
             aiBtn.addEventListener('click', openAiModal);
             closeAiModalBtn.addEventListener('click', () => aiModal.style.display = 'none');
             tabs.forEach(tab => tab.addEventListener('click', () => switchSuggestion(parseInt(tab.dataset.index))));
@@ -241,166 +267,27 @@
                 }
             });
 
-            // エディタ操作
-            manuscriptArea.addEventListener('click', handleBlockClick);
+            manuscriptArea.addEventListener('click', handleAreaClick); // ★変更: エリア全体のクリックを管理
             copyAllBtn.addEventListener('click', handleCopyAll);
+            clearAllBtn.addEventListener('click', handleClearAll);
             
-            // 作品管理関連
             menuBtn.addEventListener('click', openStoryListModal);
             closeStoryModalBtn.addEventListener('click', () => storyListModal.style.display = 'none');
             createNewStoryBtn.addEventListener('click', handleCreateNewStory);
             currentTitleSpan.addEventListener('click', handleChangeTitle);
         });
 
-
-        // --- ★★★ 複数作品管理システム ★★★ ---
-
-        // 1. エディタ初期化
-        function initializeEditor() {
-            const indexData = localStorage.getItem(STORY_INDEX_KEY);
-            let storyList = indexData ? JSON.parse(indexData) : [];
-
-            if (storyList.length === 0) {
-                // データが何もない場合、新規作成
-                createAndSwitchToNewStory();
-            } else {
-                // 最後に開いていたID、またはリストの先頭を開く
-                const lastId = localStorage.getItem('ai_novel_last_open_id');
-                const targetId = storyList.find(s => s.id === lastId) ? lastId : storyList[0].id;
-                switchStory(targetId);
-            }
-        }
-
-        // 2. 作品の切り替え
-        function switchStory(storyId) {
-            currentStoryId = storyId;
-            localStorage.setItem('ai_novel_last_open_id', storyId); // 次回用に記憶
-            
-            // リストからタイトル取得
-            const storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
-            const story = storyList.find(s => s.id === storyId);
-            if (story) {
-                currentTitleSpan.textContent = story.title;
-            }
-
-            // 原稿データを読み込み
-            loadManuscript(storyId);
-            storyListModal.style.display = 'none'; // モーダル閉じる
-        }
-
-        // 3. 新規作成
-        function handleCreateNewStory() {
-            createAndSwitchToNewStory();
-        }
-
-        function createAndSwitchToNewStory() {
-            const newId = `story_${Date.now()}`;
-            const newStory = {
-                id: newId,
-                title: "新しい物語",
-                lastModified: Date.now()
-            };
-
-            // インデックスに追加
-            const storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
-            storyList.unshift(newStory); // 先頭に追加
-            localStorage.setItem(STORY_INDEX_KEY, JSON.stringify(storyList));
-
-            // エディタをクリアして切り替え
-            manuscriptArea.innerHTML = '';
-            addInfoBlock();
-            switchStory(newId);
-        }
-
-        // 4. 作品一覧モーダル表示
-        function openStoryListModal() {
-            storyListContainer.innerHTML = '';
-            const storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
-
-            storyList.forEach(story => {
-                const item = document.createElement('div');
-                item.className = `story-item ${story.id === currentStoryId ? 'active' : ''}`;
-                
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'story-info';
-                infoDiv.onclick = () => switchStory(story.id); // クリックで切り替え
-
-                const titleSpan = document.createElement('span');
-                titleSpan.className = 'story-title';
-                titleSpan.textContent = story.title;
-
-                const dateSpan = document.createElement('span');
-                dateSpan.className = 'story-date';
-                const date = new Date(story.lastModified);
-                dateSpan.textContent = `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes()}`;
-
-                infoDiv.appendChild(titleSpan);
-                infoDiv.appendChild(dateSpan);
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'story-delete-btn';
-                deleteBtn.textContent = '削除';
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation(); // 親のクリックイベントを止める
-                    deleteStory(story.id);
-                };
-
-                item.appendChild(infoDiv);
-                item.appendChild(deleteBtn);
-                storyListContainer.appendChild(item);
-            });
-
-            storyListModal.style.display = 'block';
-        }
-
-        // 5. 作品削除
-        function deleteStory(id) {
-            if (!confirm('この作品を削除しますか？\n復元できません。')) return;
-
-            // インデックスから削除
-            let storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
-            storyList = storyList.filter(s => s.id !== id);
-            localStorage.setItem(STORY_INDEX_KEY, JSON.stringify(storyList));
-
-            // 実データも削除
-            localStorage.removeItem(id);
-
-            // もし今開いている作品を消したら、別の作品を開く
-            if (id === currentStoryId) {
-                initializeEditor();
-            } else {
-                openStoryListModal(); // リスト再描画
-            }
-        }
-
-        // 6. タイトル変更
-        function handleChangeTitle() {
-            const newTitle = prompt("作品のタイトルを入力してください", currentTitleSpan.textContent);
-            if (newTitle && newTitle.trim() !== "") {
-                currentTitleSpan.textContent = newTitle;
-                
-                // インデックスを更新
-                const storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
-                const story = storyList.find(s => s.id === currentStoryId);
-                if (story) {
-                    story.title = newTitle;
-                    localStorage.setItem(STORY_INDEX_KEY, JSON.stringify(storyList));
-                }
-            }
-        }
-
-        // --- エディタ基本機能 ---
-
+        // --- ★★★ 確定ボタンの処理（挿入・編集・新規） ★★★ ---
         function handleConfirm() {
             const text = textInput.value;
+            
+            // 空送信時のキャンセル処理
             if (text.trim() === '') {
-                if (editingBlockId) {
-                    const editingBlock = document.querySelector(`[data-id="${editingBlockId}"]`);
-                    if (editingBlock) editingBlock.classList.remove('is-editing');
-                    editingBlockId = null;
-                }
-                textInput.value = ''; autoResizeTextarea(); return;
+                resetInputState();
+                return;
             }
+
+            // 1. 既存ブロックの編集
             if (editingBlockId) {
                 const editingBlock = document.querySelector(`[data-id="${editingBlockId}"]`);
                 if (editingBlock) {
@@ -409,120 +296,309 @@
                     editingBlock.classList.remove('is-editing');
                 }
                 editingBlockId = null;
-            } else { addManuscript(text); }
+            } 
+            // 2. 途中挿入
+            else if (insertTargetId) {
+                // 基準となるブロック（gapの直前のブロック）を探す
+                const targetBlock = document.querySelector(`[data-id="${insertTargetId}"]`);
+                // そのブロックの次の次（gapの次）が本来の挿入位置だが、
+                // DOM的には targetBlock の「直後のgap」のさらに後ろに追加したい。
+                // insertBeforeを使うため、「ターゲットの次の次の要素（次のブロック）」を取得
+                if (targetBlock) {
+                    const targetGap = targetBlock.nextElementSibling; // これがgap
+                    const nextBlock = targetGap ? targetGap.nextElementSibling : null;
+                    
+                    addManuscriptBlockDOM(text, nextBlock); // nextBlockの前に挿入
+                } else {
+                    addManuscriptBlockDOM(text); // 見つからなければ最後尾
+                }
+                resetInputState();
+            }
+            // 3. 新規追加（最後尾）
+            else {
+                addManuscriptBlockDOM(text);
+                // 新規追加時のみスクロール
+                manuscriptArea.scrollTop = manuscriptArea.scrollHeight;
+            }
+            
             textInput.value = ''; autoResizeTextarea();
             saveManuscript();
         }
 
-        function addManuscript(text, isLoading = false) {
+        // 入力状態のリセット
+        function resetInputState() {
+            // 編集解除
+            if (editingBlockId) {
+                const b = document.querySelector(`[data-id="${editingBlockId}"]`);
+                if (b) b.classList.remove('is-editing');
+                editingBlockId = null;
+            }
+            // 挿入モード解除
+            if (insertTargetId) {
+                const gaps = document.querySelectorAll('.insert-gap');
+                gaps.forEach(g => g.classList.remove('active'));
+                insertTargetId = null;
+                textInput.classList.remove('insert-mode');
+                textInput.placeholder = "文章を入力...";
+            }
+            textInput.value = '';
+            autoResizeTextarea();
+        }
+
+        // --- ★★★ DOM生成（ブロック＋隙間） ★★★ ---
+        // insertBeforeElement があればその前に挿入、なければ最後尾に追加
+        function addManuscriptBlockDOM(text, insertBeforeElement = null) {
+            // 1. 原稿ブロック作成
             const block = document.createElement('div');
             block.className = 'manuscript-block';
             block.dataset.id = `block-${Date.now()}-${Math.random()}`;
+
             const textSpan = document.createElement('span');
             textSpan.className = 'block-text';
             textSpan.textContent = text;
+
             const editBtn = document.createElement('span');
             editBtn.className = 'edit-button';
             editBtn.textContent = '✏️';
-            block.appendChild(textSpan); block.appendChild(editBtn);
-            manuscriptArea.appendChild(block);
-            if (!isLoading) manuscriptArea.scrollTop = manuscriptArea.scrollHeight;
-        }
 
-        function handleBlockClick(event) {
-            const clickedButton = event.target.closest('.edit-button');
-            if (!clickedButton) return;
-            const clickedBlock = clickedButton.closest('.manuscript-block');
-            if (!clickedBlock || clickedBlock.classList.contains('info') || clickedBlock.classList.contains('is-editing')) return;
-            if (editingBlockId) {
-                const prevEditingBlock = document.querySelector(`[data-id="${editingBlockId}"]`);
-                if (prevEditingBlock) prevEditingBlock.classList.remove('is-editing');
+            block.appendChild(textSpan);
+            block.appendChild(editBtn);
+
+            // 2. その下の隙間（挿入ボタン）作成
+            const gap = document.createElement('div');
+            gap.className = 'insert-gap';
+            gap.dataset.prevId = block.dataset.id; // どのブロックの下か
+            
+            const gapBtn = document.createElement('div');
+            gapBtn.className = 'insert-btn';
+            gapBtn.textContent = '+';
+            gap.appendChild(gapBtn);
+
+            // 3. 挿入実行
+            if (insertBeforeElement) {
+                manuscriptArea.insertBefore(block, insertBeforeElement);
+                manuscriptArea.insertBefore(gap, insertBeforeElement);
+            } else {
+                manuscriptArea.appendChild(block);
+                manuscriptArea.appendChild(gap);
             }
-            editingBlockId = clickedBlock.dataset.id;
-            clickedBlock.classList.add('is-editing');
-            textInput.value = clickedBlock.querySelector('.block-text').textContent;
-            autoResizeTextarea(); textInput.focus();
-            saveManuscript();
+        }
+        
+        // --- ★★★ クリックハンドリング（編集ボタン or 挿入ボタン） ★★★ ---
+        function handleAreaClick(event) {
+            // A. 編集ボタンクリック
+            const editBtn = event.target.closest('.edit-button');
+            if (editBtn) {
+                const block = editBtn.closest('.manuscript-block');
+                if (!block || block.classList.contains('info')) return;
+                
+                resetInputState(); // 他の状態をクリア
+                
+                editingBlockId = block.dataset.id;
+                block.classList.add('is-editing');
+                textInput.value = block.querySelector('.block-text').textContent;
+                autoResizeTextarea(); textInput.focus();
+                return;
+            }
+
+            // B. 挿入ギャップクリック
+            const gap = event.target.closest('.insert-gap');
+            if (gap) {
+                // すでにアクティブなら解除
+                if (gap.classList.contains('active')) {
+                    resetInputState();
+                    return;
+                }
+                
+                resetInputState(); // 他の状態をクリア
+                
+                insertTargetId = gap.dataset.prevId;
+                gap.classList.add('active');
+                
+                textInput.classList.add('insert-mode');
+                textInput.placeholder = "ここに挿入する文章を入力...";
+                textInput.focus();
+                return;
+            }
         }
 
-        // 保存（作品IDごとに保存）
+
+        // --- 作品管理・保存関連 ---
+
+        function initializeEditor() {
+            const indexData = localStorage.getItem(STORY_INDEX_KEY);
+            let storyList = indexData ? JSON.parse(indexData) : [];
+            if (storyList.length === 0) {
+                createAndSwitchToNewStory();
+            } else {
+                const lastId = localStorage.getItem('ai_novel_last_open_id');
+                const targetId = storyList.find(s => s.id === lastId) ? lastId : storyList[0].id;
+                switchStory(targetId);
+            }
+        }
+
+        function switchStory(storyId) {
+            currentStoryId = storyId;
+            localStorage.setItem('ai_novel_last_open_id', storyId);
+            const storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
+            const story = storyList.find(s => s.id === storyId);
+            if (story) currentTitleSpan.textContent = story.title;
+            loadManuscript(storyId);
+            storyListModal.style.display = 'none';
+        }
+
+        function createAndSwitchToNewStory() {
+            const newId = `story_${Date.now()}`;
+            const newStory = { id: newId, title: "新しい物語", lastModified: Date.now() };
+            const storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
+            storyList.unshift(newStory);
+            localStorage.setItem(STORY_INDEX_KEY, JSON.stringify(storyList));
+            manuscriptArea.innerHTML = ''; addInfoBlock();
+            switchStory(newId);
+        }
+
+        function openStoryListModal() {
+            storyListContainer.innerHTML = '';
+            const storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
+            storyList.forEach(story => {
+                const item = document.createElement('div');
+                item.className = `story-item ${story.id === currentStoryId ? 'active' : ''}`;
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'story-info';
+                infoDiv.onclick = () => switchStory(story.id);
+
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'story-title';
+                titleSpan.textContent = story.title;
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'story-date';
+                const date = new Date(story.lastModified);
+                dateSpan.textContent = `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes()}`;
+
+                infoDiv.appendChild(titleSpan); infoDiv.appendChild(dateSpan);
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'story-delete-btn';
+                deleteBtn.textContent = '削除';
+                deleteBtn.onclick = (e) => { e.stopPropagation(); deleteStory(story.id); };
+
+                item.appendChild(infoDiv); item.appendChild(deleteBtn);
+                storyListContainer.appendChild(item);
+            });
+            storyListModal.style.display = 'block';
+        }
+
+        function deleteStory(id) {
+            if (!confirm('削除しますか？')) return;
+            let storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
+            storyList = storyList.filter(s => s.id !== id);
+            localStorage.setItem(STORY_INDEX_KEY, JSON.stringify(storyList));
+            localStorage.removeItem(id);
+            if (id === currentStoryId) initializeEditor();
+            else openStoryListModal();
+        }
+
+        function handleChangeTitle() {
+            const newTitle = prompt("タイトルを入力", currentTitleSpan.textContent);
+            if (newTitle && newTitle.trim() !== "") {
+                currentTitleSpan.textContent = newTitle;
+                const storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
+                const story = storyList.find(s => s.id === currentStoryId);
+                if (story) { story.title = newTitle; localStorage.setItem(STORY_INDEX_KEY, JSON.stringify(storyList)); }
+            }
+        }
+
+        function handleClearAll() {
+            if (confirm('現在の作品の文章を全て削除しますか？')) {
+                localStorage.removeItem(currentStoryId);
+                manuscriptArea.innerHTML = ''; 
+                resetInputState();
+                addInfoBlock(); updateCharCount();
+            }
+        }
+
+        // 保存・読み込み
         function saveManuscript() {
             if (!currentStoryId) return;
-
             const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
             const blockTexts = blocks.map(block => block.textContent);
-            
-            // 個別の作品データとして保存
             localStorage.setItem(currentStoryId, JSON.stringify(blockTexts));
-            
-            // 更新日時を更新
             const storyList = JSON.parse(localStorage.getItem(STORY_INDEX_KEY) || '[]');
             const story = storyList.find(s => s.id === currentStoryId);
-            if (story) {
-                story.lastModified = Date.now();
-                localStorage.setItem(STORY_INDEX_KEY, JSON.stringify(storyList));
-            }
-
+            if (story) { story.lastModified = Date.now(); localStorage.setItem(STORY_INDEX_KEY, JSON.stringify(storyList)); }
             updateCharCount();
         }
 
-        // 読み込み（作品IDを指定）
         function loadManuscript(storyId) {
             manuscriptArea.innerHTML = '';
             const savedData = localStorage.getItem(storyId);
             if (savedData) {
                 const blockTexts = JSON.parse(savedData);
                 if (blockTexts.length > 0) {
-                    blockTexts.forEach(text => addManuscript(text, true));
+                    blockTexts.forEach(text => addManuscriptBlockDOM(text)); // 読み込み時は末尾追加でOK
                 } else { addInfoBlock(); }
             } else { addInfoBlock(); }
             updateCharCount();
         }
 
-        function updateCharCount() {
-            const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
-            let totalCount = 0;
-            blocks.forEach(block => { totalCount += block.textContent.length; });
-            charCountDisplay.textContent = `${totalCount}文字`;
-        }
         function addInfoBlock() {
              const info = document.createElement('div');
              info.className = 'manuscript-block info';
              const textSpan = document.createElement('span');
              textSpan.className = 'block-text';
              textSpan.textContent = '（ここに文章が積み上がります）';
-             info.appendChild(textSpan); manuscriptArea.appendChild(info);
+             info.appendChild(textSpan); 
+             
+             // infoブロックの下にも一応gapをつけておく（先頭挿入用として使える）
+             const gap = document.createElement('div');
+             gap.className = 'insert-gap';
+             gap.dataset.prevId = 'info'; // infoの下
+             const gapBtn = document.createElement('div'); gapBtn.className = 'insert-btn'; gapBtn.textContent = '+';
+             gap.appendChild(gapBtn);
+             
+             manuscriptArea.appendChild(info);
+             manuscriptArea.appendChild(gap);
         }
 
+        function updateCharCount() {
+            const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
+            let totalCount = 0; blocks.forEach(block => { totalCount += block.textContent.length; });
+            charCountDisplay.textContent = `${totalCount}文字`;
+        }
         function handleCopyAll() {
             const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
-            if (blocks.length === 0) { alert('コピーする文章がありません。'); return; }
+            if (blocks.length === 0) { alert('文章がありません'); return; }
             const allText = blocks.map(block => block.textContent).join('\n');
             if (navigator.clipboard) {
-                navigator.clipboard.writeText(allText).then(() => { alert('全文をコピーしました！'); })
-                .catch(err => { fallbackCopyTextToClipboard(allText); });
-            } else { fallbackCopyTextToClipboard(allText); }
+                navigator.clipboard.writeText(allText).then(() => alert('コピーしました')).catch(() => fallbackCopy(allText));
+            } else { fallbackCopy(allText); }
         }
-        function fallbackCopyTextToClipboard(text) {
-            const textArea = document.createElement("textarea"); textArea.value = text;
-            textArea.style.position = "fixed"; textArea.style.left = "-9999px";
-            document.body.appendChild(textArea); textArea.focus(); textArea.select();
-            try { document.execCommand('copy'); alert('全文をコピーしました！'); } 
-            catch (err) { alert('コピー失敗'); } document.body.removeChild(textArea);
+        function fallbackCopy(text) {
+            const ta = document.createElement("textarea"); ta.value = text;
+            ta.style.position = "fixed"; ta.style.left = "-9999px"; document.body.appendChild(ta);
+            ta.focus(); ta.select(); try { document.execCommand('copy'); alert('コピーしました'); } catch(e){}
+            document.body.removeChild(ta);
         }
 
-        // --- AI機能 (変更なし、文脈整理版) ---
+        // --- AI機能 ---
         async function callRealAiApi(originalText, instruction = null) {
             const allBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info)'));
             let contextString = "";
             if (editingBlockId) {
-                const currentIndex = allBlocks.findIndex(b => b.dataset.id === editingBlockId);
-                const prevText = allBlocks.slice(0, currentIndex).map(b => b.querySelector('.block-text').textContent).join('\n');
-                const nextText = allBlocks.slice(currentIndex + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
-                contextString = `【直前の文脈】\n${prevText}\n\n【直後の文脈】\n${nextText}`;
+                const idx = allBlocks.findIndex(b => b.dataset.id === editingBlockId);
+                const prev = allBlocks.slice(0, idx).map(b => b.querySelector('.block-text').textContent).join('\n');
+                const next = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
+                contextString = `【直前の文脈】\n${prev}\n\n【直後の文脈】\n${next}`;
+            } else if (insertTargetId) {
+                // 挿入モードの場合の文脈
+                const idx = allBlocks.findIndex(b => b.dataset.id === insertTargetId);
+                // insertTargetId は「このブロックの後」なので、そこまでが「前」
+                const prev = allBlocks.slice(0, idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
+                const next = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
+                contextString = `【直前の文脈】\n${prev}\n\n【直後の文脈】\n${next}`;
             } else {
-                const allText = allBlocks.map(b => b.querySelector('.block-text').textContent).join('\n');
-                contextString = `【これまでの文脈】\n${allText}`;
+                const all = allBlocks.map(b => b.querySelector('.block-text').textContent).join('\n');
+                contextString = `【これまでの文脈】\n${all}`;
             }
 
             try {
@@ -530,16 +606,15 @@
                     method: 'POST', mode: 'cors', headers: {'Content-Type': 'text/plain;charset=utf-t',},
                     body: JSON.stringify({ originalText: originalText, context: contextString, moreRequest: instruction })
                 });
-                if (!response.ok) { throw new Error(response.statusText); }
+                if (!response.ok) throw new Error(response.statusText);
                 const result = await response.json();
                 if (result.success) {
-                    const suggestions = result.suggestionText.split(/提案\d:/).map(s => s.trim()).filter(s => s.length > 0);
-                    currentSuggestions = suggestions.length > 0 ? suggestions : [result.suggestionText];
+                    const suggs = result.suggestionText.split(/提案\d:/).map(s => s.trim()).filter(s => s.length > 0);
+                    currentSuggestions = suggs.length > 0 ? suggs : [result.suggestionText];
                     while (currentSuggestions.length < 3) currentSuggestions.push("（提案なし）");
-                } else { throw new Error(result.error); }
-            } catch (error) {
-                console.error(error);
-                currentSuggestions = ["エラーが発生しました: " + error.message];
+                } else throw new Error(result.error);
+            } catch (e) {
+                console.error(e); currentSuggestions = ["エラー: " + e.message];
             }
             switchSuggestion(0);
         }
@@ -554,10 +629,10 @@
             await callRealAiApi(text, null); 
         }
 
-        async function handleAiMoreRequest(requestText) {
+        async function handleAiMoreRequest(req) {
             currentSuggestions = ["考え直しています...", "考え直しています...", "考え直しています..."];
             switchSuggestion(0);
-            await callRealAiApi(originalTextContent.textContent, requestText);
+            await callRealAiApi(originalTextContent.textContent, req);
         }
         
         function switchSuggestion(index) {
