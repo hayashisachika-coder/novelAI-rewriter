@@ -54,38 +54,35 @@
         .manuscript-block {
             padding: 10px 0; 
             display: flex; justify-content: space-between; 
-            align-items: center; /* 縦方向は中央揃え（お好みで flex-start にしてもOK） */
-            gap: 15px; /* 文章とボタンの間の余白 */
+            align-items: center; 
+            gap: 15px; 
         }
         .block-text { flex-grow: 1; word-wrap: break-word; white-space: pre-wrap; }
         
-        /* ★変更: ボタン類を縦に並べる */
+        /* ボタン類を縦に並べる */
         .block-actions {
             display: flex; 
-            flex-direction: column; /* 縦並び */
-            gap: 8px; /* ボタン同士の間隔 */
+            flex-direction: column; 
+            gap: 8px; 
             flex-shrink: 0;
             opacity: 0.3; transition: opacity 0.2s;
         }
-        /* ホバー時にボタンをはっきり表示 */
         .manuscript-block:hover .block-actions { opacity: 1; }
 
-        /* ★変更: ボタンを丸くする */
+        /* ボタンを丸くする */
         .action-icon-btn {
-            width: 32px; height: 32px; /* 正方形にする */
-            border-radius: 50%; /* 完全な丸 */
-            border: 1px solid #eee; /* 薄い枠線 */
+            width: 32px; height: 32px; 
+            border-radius: 50%; 
+            border: 1px solid #eee; 
             background-color: #fff;
-            
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; 
             font-size: 14px;
             padding: 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* ほんのり影 */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
         }
         .action-icon-btn:hover { background-color: #f0f0f0; border-color: #ccc; }
         
-        /* 削除ボタンだけホバー時に赤く */
         .delete-button:hover { background-color: #ffebee; color: #d32f2f; border-color: #ffcdd2; }
         
         .manuscript-block.info { color: #888; cursor: default; border-bottom: 1px solid #eee; }
@@ -284,7 +281,10 @@
             
             menuBtn.addEventListener('click', openStoryListModal);
             closeStoryModalBtn.addEventListener('click', () => storyListModal.style.display = 'none');
-            createNewStoryBtn.addEventListener('click', handleCreateNewStory);
+            
+            // ★修正ポイント: 関数名を正しいものに修正
+            createNewStoryBtn.addEventListener('click', createAndSwitchToNewStory);
+            
             currentTitleSpan.addEventListener('click', handleChangeTitle);
         });
 
