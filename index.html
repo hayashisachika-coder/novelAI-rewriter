@@ -555,57 +555,64 @@
             ta.focus(); ta.select(); try { document.execCommand('copy'); alert('コピーしました'); } catch(e){} document.body.removeChild(ta);
         }
 
-        // --- AI機能（文脈分離送信版：前後10ブロック） ---
+        // --- AI機能（文脈分離送信版：前後10ブロック・修正済み） ---
         async function callRealAiApi(originalText, instruction = null) {
+            // 1. まず全てのブロックを取得
             const allBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info)'));
             
-            // ★変更: 文脈の範囲を3から10に拡大
-            const CONTEXT_RANGE = 10; 
-
+            // 2. ここで変数を「空」で宣言しておく（これでエラーを防ぎます）
             let preContext = "";
             let postContext = "";
+            
+            // 文脈の範囲（前後10ブロック）
+            const CONTEXT_RANGE = 10; 
 
+            // 3. 状況に合わせて中身を入れる
             if (editingBlockId) {
-                // 【編集モード】
+                // ---【編集モード】---
                 const idx = allBlocks.findIndex(b => b.dataset.id === editingBlockId);
                 
-                // 前：idx-10 〜 idx-1 (なければ0から)
-                const startPrev = Math.max(0, idx - CONTEXT_RANGE);
-                preContext = allBlocks.slice(startPrev, idx)
-                                      .map(b => b.querySelector('.block-text').textContent)
-                                      .join('\n');
-                
-                // 後：idx+1 〜 idx+10 (なければ最後まで)
-                const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
-                postContext = allBlocks.slice(idx + 1, endNext)
-                                      .map(b => b.querySelector('.block-text').textContent)
-                                      .join('\n');
+                if (idx !== -1) {
+                    // 前の文脈
+                    const startPrev = Math.max(0, idx - CONTEXT_RANGE);
+                    preContext = allBlocks.slice(startPrev, idx)
+                                          .map(b => b.querySelector('.block-text').textContent)
+                                          .join('\n');
+                    
+                    // 後の文脈
+                    const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
+                    postContext = allBlocks.slice(idx + 1, endNext)
+                                          .map(b => b.querySelector('.block-text').textContent)
+                                          .join('\n');
+                }
 
             } else if (insertTargetId) {
-                // 【挿入モード】
+                // ---【挿入モード】---
                 const idx = allBlocks.findIndex(b => b.dataset.id === insertTargetId);
                 
-                // 前：idx-9 〜 idx (ターゲット含む直近10個)
-                const startPrev = Math.max(0, idx - CONTEXT_RANGE + 1);
-                preContext = allBlocks.slice(startPrev, idx + 1)
-                                      .map(b => b.querySelector('.block-text').textContent)
-                                      .join('\n');
-                
-                // 後：idx+1 〜 idx+10
-                const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
-                postContext = allBlocks.slice(idx + 1, endNext)
-                                      .map(b => b.querySelector('.block-text').textContent)
-                                      .join('\n');
+                if (idx !== -1) {
+                    // 前の文脈（ターゲット含む）
+                    const startPrev = Math.max(0, idx - CONTEXT_RANGE + 1);
+                    preContext = allBlocks.slice(startPrev, idx + 1)
+                                          .map(b => b.querySelector('.block-text').textContent)
+                                          .join('\n');
+                    
+                    // 後の文脈
+                    const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
+                    postContext = allBlocks.slice(idx + 1, endNext)
+                                          .map(b => b.querySelector('.block-text').textContent)
+                                          .join('\n');
+                }
 
             } else {
-                // 【新規作成】(末尾に追加)
-                // 後ろから10個
+                // ---【新規作成（一番下に追加）】---
                 const start = Math.max(0, allBlocks.length - CONTEXT_RANGE);
                 preContext = allBlocks.slice(start)
                                       .map(b => b.querySelector('.block-text').textContent)
                                       .join('\n');
             }
 
+            // 4. GASへ送信
             try {
                 const response = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST', 
@@ -629,8 +636,10 @@
                 } else throw new Error(result.error);
 
             } catch (e) {
-                console.error(e); currentSuggestions = ["エラー: " + e.message];
+                console.error(e); 
+                currentSuggestions = ["エラーが発生しました: " + e.message];
             }
+            
             switchSuggestion(0);
         }
 
@@ -666,4 +675,5 @@
     </script>
 </body>
 </html>
+
 
