@@ -555,37 +555,79 @@
             ta.focus(); ta.select(); try { document.execCommand('copy'); alert('コピーしました'); } catch(e){} document.body.removeChild(ta);
         }
 
-        // --- AI機能 ---
+        // --- AI機能（文脈分離送信版：前後10ブロック） ---
         async function callRealAiApi(originalText, instruction = null) {
             const allBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info)'));
-            let contextString = "";
+            
+            // ★変更: 文脈の範囲を3から10に拡大
+            const CONTEXT_RANGE = 10; 
+
+            let preContext = "";
+            let postContext = "";
+
             if (editingBlockId) {
+                // 【編集モード】
                 const idx = allBlocks.findIndex(b => b.dataset.id === editingBlockId);
-                const prev = allBlocks.slice(0, idx).map(b => b.querySelector('.block-text').textContent).join('\n');
-                const next = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
-                contextString = `【直前の文脈】\n${prev}\n\n【直後の文脈】\n${next}`;
+                
+                // 前：idx-10 〜 idx-1 (なければ0から)
+                const startPrev = Math.max(0, idx - CONTEXT_RANGE);
+                preContext = allBlocks.slice(startPrev, idx)
+                                      .map(b => b.querySelector('.block-text').textContent)
+                                      .join('\n');
+                
+                // 後：idx+1 〜 idx+10 (なければ最後まで)
+                const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
+                postContext = allBlocks.slice(idx + 1, endNext)
+                                      .map(b => b.querySelector('.block-text').textContent)
+                                      .join('\n');
+
             } else if (insertTargetId) {
+                // 【挿入モード】
                 const idx = allBlocks.findIndex(b => b.dataset.id === insertTargetId);
-                const prev = allBlocks.slice(0, idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
-                const next = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
-                contextString = `【直前の文脈】\n${prev}\n\n【直後の文脈】\n${next}`;
+                
+                // 前：idx-9 〜 idx (ターゲット含む直近10個)
+                const startPrev = Math.max(0, idx - CONTEXT_RANGE + 1);
+                preContext = allBlocks.slice(startPrev, idx + 1)
+                                      .map(b => b.querySelector('.block-text').textContent)
+                                      .join('\n');
+                
+                // 後：idx+1 〜 idx+10
+                const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
+                postContext = allBlocks.slice(idx + 1, endNext)
+                                      .map(b => b.querySelector('.block-text').textContent)
+                                      .join('\n');
+
             } else {
-                const all = allBlocks.map(b => b.querySelector('.block-text').textContent).join('\n');
-                contextString = `【これまでの文脈】\n${all}`;
+                // 【新規作成】(末尾に追加)
+                // 後ろから10個
+                const start = Math.max(0, allBlocks.length - CONTEXT_RANGE);
+                preContext = allBlocks.slice(start)
+                                      .map(b => b.querySelector('.block-text').textContent)
+                                      .join('\n');
             }
 
             try {
                 const response = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST', mode: 'cors', headers: {'Content-Type': 'text/plain;charset=utf-t',},
-                    body: JSON.stringify({ originalText: originalText, context: contextString, moreRequest: instruction })
+                    method: 'POST', 
+                    mode: 'cors', 
+                    headers: {'Content-Type': 'text/plain;charset=utf-t',},
+                    body: JSON.stringify({ 
+                        originalText: originalText, 
+                        preContext: preContext, 
+                        postContext: postContext, 
+                        moreRequest: instruction 
+                    })
                 });
+
                 if (!response.ok) throw new Error(response.statusText);
                 const result = await response.json();
+                
                 if (result.success) {
                     const suggs = result.suggestionText.split(/提案\d:/).map(s => s.trim()).filter(s => s.length > 0);
                     currentSuggestions = suggs.length > 0 ? suggs : [result.suggestionText];
                     while (currentSuggestions.length < 3) currentSuggestions.push("（提案なし）");
                 } else throw new Error(result.error);
+
             } catch (e) {
                 console.error(e); currentSuggestions = ["エラー: " + e.message];
             }
@@ -624,3 +666,4 @@
     </script>
 </body>
 </html>
+
