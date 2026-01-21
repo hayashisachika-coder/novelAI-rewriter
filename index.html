@@ -563,9 +563,6 @@
             // 2. ここで変数を「空」で宣言しておく（これでエラーを防ぎます）
             let preContext = "";
             let postContext = "";
-            
-            // 文脈の範囲（前後10ブロック）
-            const CONTEXT_RANGE = 20; 
 
             // 3. 状況に合わせて中身を入れる
             if (editingBlockId) {
@@ -675,6 +672,7 @@
     </script>
 </body>
 </html>
+
 
 
 
