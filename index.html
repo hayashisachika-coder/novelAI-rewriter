@@ -59,7 +59,7 @@
         }
         .block-text { flex-grow: 1; word-wrap: break-word; white-space: pre-wrap; }
         
-        /* ボタン類を縦に並べる */
+        /* ボタン類 */
         .block-actions {
             display: flex; 
             flex-direction: column; 
@@ -69,7 +69,6 @@
         }
         .manuscript-block:hover .block-actions { opacity: 1; }
 
-        /* ボタンを丸くする */
         .action-icon-btn {
             width: 32px; height: 32px; 
             border-radius: 50%; 
@@ -83,7 +82,9 @@
         }
         .action-icon-btn:hover { background-color: #f0f0f0; border-color: #ccc; }
         
+        /* ボタン個別のホバー色 */
         .delete-button:hover { background-color: #ffebee; color: #d32f2f; border-color: #ffcdd2; }
+        .split-button:hover { background-color: #fff3e0; border-color: #ffcc80; }
         
         .manuscript-block.info { color: #888; cursor: default; border-bottom: 1px solid #eee; }
         .manuscript-block.is-editing { background-color: #e3f2fd; border-radius: 5px; padding-left: 5px; padding-right: 5px;}
@@ -221,6 +222,22 @@
         </div>
     </div>
 
+    <div id="split-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>ブロックの分割</span>
+                <span id="close-split-modal" class="close-modal-btn">×</span>
+            </div>
+            <div style="padding: 15px; color: #666; font-size: 14px; background-color: #fff9e6; border-bottom: 1px solid #eee;">
+                💡 分割したい位置（文字と文字の間）をタップしてカーソルを合わせ、「ここで分割」を押してください。
+            </div>
+            <textarea id="split-textarea" style="flex-grow: 1; margin: 15px; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 10px; resize: none; font-family: inherit; line-height: 1.6;"></textarea>
+            <div class="modal-footer">
+                <button id="execute-split-btn" style="width: 100%; padding: 15px; background-color: #f39c12; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">✂️ ここで分割する</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- DOM要素 ---
         const textInput = document.getElementById('text-input');
@@ -246,11 +263,18 @@
         const storyListContainer = document.getElementById('story-list-container');
         const createNewStoryBtn = document.getElementById('create-new-story-btn');
 
+        // ★分割モーダル用
+        const splitModal = document.getElementById('split-modal');
+        const closeSplitModalBtn = document.getElementById('close-split-modal');
+        const splitTextarea = document.getElementById('split-textarea');
+        const executeSplitBtn = document.getElementById('execute-split-btn');
+
         // --- グローバル変数 ---
         let currentSuggestions = []; 
         let currentSuggestionIndex = 0; 
         let editingBlockId = null; 
         let insertTargetId = null; 
+        let splitTargetId = null; // ★追加：分割対象のブロックID
 
         // ★★★ GAS URL (ここにあなたのURL) ★★★
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMCdYvJVs36E5I32cUSuqQox-1IP1L3MBQalQF_YXUF4hd1j0Bwlawvzxb_Qb38pc/exec"; 
@@ -281,11 +305,15 @@
             
             menuBtn.addEventListener('click', openStoryListModal);
             closeStoryModalBtn.addEventListener('click', () => storyListModal.style.display = 'none');
-            
-            // ★修正ポイント: 関数名を正しいものに修正
             createNewStoryBtn.addEventListener('click', createAndSwitchToNewStory);
-            
             currentTitleSpan.addEventListener('click', handleChangeTitle);
+
+            // ★追加：分割モーダルのイベント
+            closeSplitModalBtn.addEventListener('click', () => {
+                splitModal.style.display = 'none';
+                splitTargetId = null;
+            });
+            executeSplitBtn.addEventListener('click', handleExecuteSplit);
         });
 
         // --- 確定ボタン処理 ---
@@ -351,17 +379,26 @@
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'block-actions';
 
+            // 編集ボタン
             const editBtn = document.createElement('button');
             editBtn.className = 'action-icon-btn edit-button';
             editBtn.textContent = '✏️';
             editBtn.title = "編集";
 
+            // ★追加：分割ボタン
+            const splitBtn = document.createElement('button');
+            splitBtn.className = 'action-icon-btn split-button';
+            splitBtn.textContent = '✂️';
+            splitBtn.title = "分割";
+
+            // 削除ボタン
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'action-icon-btn delete-button';
             deleteBtn.textContent = '🗑️';
             deleteBtn.title = "削除";
 
             actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(splitBtn); // 間に挿入
             actionsDiv.appendChild(deleteBtn);
 
             block.appendChild(textSpan);
@@ -384,8 +421,9 @@
             }
         }
         
-        // --- クリック処理 ---
+        // --- クリック処理（編集・分割・削除・挿入） ---
         function handleAreaClick(event) {
+            // A. 編集ボタン
             const editBtn = event.target.closest('.edit-button');
             if (editBtn) {
                 const block = editBtn.closest('.manuscript-block');
@@ -398,6 +436,20 @@
                 return;
             }
 
+            // ★B. 分割ボタン
+            const splitBtnClick = event.target.closest('.split-button');
+            if (splitBtnClick) {
+                const block = splitBtnClick.closest('.manuscript-block');
+                if (!block || block.classList.contains('info')) return;
+                
+                resetInputState();
+                splitTargetId = block.dataset.id;
+                splitTextarea.value = block.querySelector('.block-text').textContent;
+                splitModal.style.display = 'block';
+                return;
+            }
+
+            // C. 削除ボタン
             const deleteBtn = event.target.closest('.delete-button');
             if (deleteBtn) {
                 const block = deleteBtn.closest('.manuscript-block');
@@ -413,6 +465,7 @@
                 return;
             }
 
+            // D. 挿入ギャップ
             const gap = event.target.closest('.insert-gap');
             if (gap) {
                 if (gap.classList.contains('active')) { resetInputState(); return; }
@@ -424,6 +477,39 @@
                 textInput.focus();
                 return;
             }
+        }
+
+        // --- ★追加：分割の実行処理 ---
+        function handleExecuteSplit() {
+            const text = splitTextarea.value;
+            const cursorPos = splitTextarea.selectionStart;
+
+            // カーソルが先頭や末尾にある場合は警告
+            if (cursorPos === 0 || cursorPos === text.length) {
+                alert('分割したい位置（文字と文字の間）をタップしてカーソルを合わせてください。');
+                return;
+            }
+
+            // カーソル位置でテキストを2つに分ける
+            const text1 = text.substring(0, cursorPos);
+            const text2 = text.substring(cursorPos);
+
+            const targetBlock = document.querySelector(`[data-id="${splitTargetId}"]`);
+            if (targetBlock) {
+                // 1. 元のブロックの前半を更新
+                targetBlock.querySelector('.block-text').textContent = text1;
+                
+                // 2. 後半を新しいブロックとしてすぐ下（ギャップの下）に挿入
+                const targetGap = targetBlock.nextElementSibling; 
+                const nextBlock = targetGap ? targetGap.nextElementSibling : null;
+                
+                addManuscriptBlockDOM(text2, nextBlock); 
+                saveManuscript();
+            }
+
+            // モーダルを閉じてリセット
+            splitModal.style.display = 'none';
+            splitTargetId = null;
         }
 
         // --- 作品管理・保存 ---
@@ -555,72 +641,32 @@
             ta.focus(); ta.select(); try { document.execCommand('copy'); alert('コピーしました'); } catch(e){} document.body.removeChild(ta);
         }
 
-        // --- AI機能（文脈分離送信版：前後10ブロック・修正済み） ---
+        // --- AI機能（文脈制限なし：全ブロック送信版） ---
         async function callRealAiApi(originalText, instruction = null) {
-            // 1. まず全てのブロックを取得
             const allBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info)'));
-            
-            // 2. ここで変数を「空」で宣言しておく（これでエラーを防ぎます）
             let preContext = "";
             let postContext = "";
-
-            // 3. 状況に合わせて中身を入れる
+            
             if (editingBlockId) {
-                // ---【編集モード】---
                 const idx = allBlocks.findIndex(b => b.dataset.id === editingBlockId);
-                
                 if (idx !== -1) {
-                    // 前の文脈
-                    const startPrev = Math.max(0, idx - CONTEXT_RANGE);
-                    preContext = allBlocks.slice(startPrev, idx)
-                                          .map(b => b.querySelector('.block-text').textContent)
-                                          .join('\n');
-                    
-                    // 後の文脈
-                    const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
-                    postContext = allBlocks.slice(idx + 1, endNext)
-                                          .map(b => b.querySelector('.block-text').textContent)
-                                          .join('\n');
+                    preContext = allBlocks.slice(0, idx).map(b => b.querySelector('.block-text').textContent).join('\n');
+                    postContext = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
                 }
-
             } else if (insertTargetId) {
-                // ---【挿入モード】---
                 const idx = allBlocks.findIndex(b => b.dataset.id === insertTargetId);
-                
                 if (idx !== -1) {
-                    // 前の文脈（ターゲット含む）
-                    const startPrev = Math.max(0, idx - CONTEXT_RANGE + 1);
-                    preContext = allBlocks.slice(startPrev, idx + 1)
-                                          .map(b => b.querySelector('.block-text').textContent)
-                                          .join('\n');
-                    
-                    // 後の文脈
-                    const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
-                    postContext = allBlocks.slice(idx + 1, endNext)
-                                          .map(b => b.querySelector('.block-text').textContent)
-                                          .join('\n');
+                    preContext = allBlocks.slice(0, idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
+                    postContext = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
                 }
-
             } else {
-                // ---【新規作成（一番下に追加）】---
-                const start = Math.max(0, allBlocks.length - CONTEXT_RANGE);
-                preContext = allBlocks.slice(start)
-                                      .map(b => b.querySelector('.block-text').textContent)
-                                      .join('\n');
+                preContext = allBlocks.map(b => b.querySelector('.block-text').textContent).join('\n');
             }
 
-            // 4. GASへ送信
             try {
                 const response = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST', 
-                    mode: 'cors', 
-                    headers: {'Content-Type': 'text/plain;charset=utf-t',},
-                    body: JSON.stringify({ 
-                        originalText: originalText, 
-                        preContext: preContext, 
-                        postContext: postContext, 
-                        moreRequest: instruction 
-                    })
+                    method: 'POST', mode: 'cors', headers: {'Content-Type': 'text/plain;charset=utf-t',},
+                    body: JSON.stringify({ originalText: originalText, preContext: preContext, postContext: postContext, moreRequest: instruction })
                 });
 
                 if (!response.ok) throw new Error(response.statusText);
@@ -636,7 +682,6 @@
                 console.error(e); 
                 currentSuggestions = ["エラーが発生しました: " + e.message];
             }
-            
             switchSuggestion(0);
         }
 
@@ -672,7 +717,3 @@
     </script>
 </body>
 </html>
-
-
-
-
