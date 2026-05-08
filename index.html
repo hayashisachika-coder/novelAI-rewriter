@@ -50,7 +50,6 @@
             padding-bottom: 50px; 
         }
         
-        /* ブロック本体 */
         .manuscript-block {
             padding: 10px 0; 
             display: flex; justify-content: space-between; 
@@ -59,30 +58,18 @@
         }
         .block-text { flex-grow: 1; word-wrap: break-word; white-space: pre-wrap; }
         
-        /* ボタン類 */
         .block-actions {
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-            flex-shrink: 0;
+            display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
             opacity: 0.3; transition: opacity 0.2s;
         }
         .manuscript-block:hover .block-actions { opacity: 1; }
 
         .action-icon-btn {
-            width: 32px; height: 32px; 
-            border-radius: 50%; 
-            border: 1px solid #eee; 
-            background-color: #fff;
+            width: 32px; height: 32px; border-radius: 50%; border: 1px solid #eee; background-color: #fff;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; 
-            font-size: 14px;
-            padding: 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+            cursor: pointer; font-size: 14px; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
         }
         .action-icon-btn:hover { background-color: #f0f0f0; border-color: #ccc; }
-        
-        /* ボタン個別のホバー色 */
         .delete-button:hover { background-color: #ffebee; color: #d32f2f; border-color: #ffcdd2; }
         .split-button:hover { background-color: #fff3e0; border-color: #ffcc80; }
         
@@ -101,8 +88,7 @@
         .insert-btn {
             z-index: 1; background-color: #fff; color: #ccc; border: 1px solid #eee;
             width: 20px; height: 20px; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;
         }
         .insert-gap:hover::before, .insert-gap.active::before { background-color: #4A90E2; }
         .insert-gap:hover .insert-btn, .insert-gap.active .insert-btn {
@@ -111,8 +97,7 @@
 
         /* --- 執筆エリア --- */
         #writing-area {
-            display: flex; align-items: flex-end; padding: 10px;
-            border-top: 1px solid #ddd; background-color: #f9f9f9;
+            display: flex; align-items: flex-end; padding: 10px; border-top: 1px solid #ddd; background-color: #f9f9f9;
             position: sticky; bottom: 0; z-index: 100;
         }
         #text-input {
@@ -129,14 +114,17 @@
         #ai-btn { background-color: #8E44AD; color: white; margin-right: 5px; }
         #confirm-btn { background-color: #4A90E2; color: white; }
 
-        /* --- モーダル --- */
+        /* --- モーダル共通 --- */
         .modal { display: none; position: fixed; z-index: 200; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .modal-content { position: absolute; bottom: 0; width: 100%; height: 90vh; max-width: 600px; left: 50%; transform: translateX(-50%); background-color: #ffffff; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; }
         .modal-header { padding: 15px; border-bottom: 1px solid #eee; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .close-modal-btn { font-size: 24px; font-weight: bold; color: #aaa; cursor: pointer; padding: 5px; }
 
-        /* AIモーダル */
+        /* 事前指示モーダル用（少し小さめ） */
+        #pre-prompt-modal .modal-content { height: auto; max-height: 60vh; }
+
+        /* AI結果モーダル */
         #original-text-area { padding: 10px 15px; background-color: #f7f7f7; border-bottom: 1px solid #eee; max-height: 100px; overflow-y: auto; }
         .original-label { font-size: 12px; font-weight: bold; color: #888; display: block; margin-bottom: 5px; }
         #original-text-content { font-size: 14px; color: #555; white-space: pre-wrap; }
@@ -186,6 +174,25 @@
         </div>
     </div>
 
+    <div id="pre-prompt-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>AIへのリライト指示</span>
+                <span id="close-pre-prompt-modal" class="close-modal-btn">×</span>
+            </div>
+            <div style="padding: 20px;">
+                <p style="margin-top: 0; font-size: 14px; color: #666; line-height: 1.5;">
+                    AIにどのような方向性で直してほしいですか？<br>
+                    （空欄のまま実行すると「おまかせリライト」になります）
+                </p>
+                <textarea id="pre-prompt-input" rows="4" placeholder="例：もっと情景描写を増やして。主人公の焦りを強調して。" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; border-radius: 10px; font-size: 16px; font-family: inherit; resize: vertical;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button id="execute-ai-btn" style="width: 100%; padding: 15px; background-color: #8E44AD; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">✨ この指示でリライト</button>
+            </div>
+        </div>
+    </div>
+
     <div id="ai-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -203,7 +210,7 @@
             </div>
             <div id="suggestion-text"></div>
             <div class="modal-footer">
-                <input type="text" id="more-request-input" placeholder="追加の指示（例：もっと情景描写を）">
+                <input type="text" id="more-request-input" placeholder="追加の修正指示（さらに情景を描写して等）">
                 <button id="decision-btn">この内容で決定</button>
             </div>
         </div>
@@ -250,6 +257,12 @@
         const menuBtn = document.getElementById('menu-btn');
         const currentTitleSpan = document.getElementById('current-title');
         
+        // 事前指示モーダル用 (★追加)
+        const prePromptModal = document.getElementById('pre-prompt-modal');
+        const closePrePromptModalBtn = document.getElementById('close-pre-prompt-modal');
+        const prePromptInput = document.getElementById('pre-prompt-input');
+        const executeAiBtn = document.getElementById('execute-ai-btn');
+
         const aiModal = document.getElementById('ai-modal');
         const closeAiModalBtn = document.getElementById('close-ai-modal');
         const suggestionText = document.getElementById('suggestion-text');
@@ -263,7 +276,6 @@
         const storyListContainer = document.getElementById('story-list-container');
         const createNewStoryBtn = document.getElementById('create-new-story-btn');
 
-        // ★分割モーダル用
         const splitModal = document.getElementById('split-modal');
         const closeSplitModalBtn = document.getElementById('close-split-modal');
         const splitTextarea = document.getElementById('split-textarea');
@@ -274,9 +286,9 @@
         let currentSuggestionIndex = 0; 
         let editingBlockId = null; 
         let insertTargetId = null; 
-        let splitTargetId = null; // ★追加：分割対象のブロックID
+        let splitTargetId = null; 
 
-        // ★★★ GAS URL (ここにあなたのURL) ★★★
+        // ★★★ GAS URL (ご自身のものをお使いください) ★★★
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxMCdYvJVs36E5I32cUSuqQox-1IP1L3MBQalQF_YXUF4hd1j0Bwlawvzxb_Qb38pc/exec"; 
 
         const STORY_INDEX_KEY = 'ai_novel_story_index'; 
@@ -289,7 +301,12 @@
             textInput.addEventListener('input', autoResizeTextarea);
             confirmBtn.addEventListener('click', handleConfirm);
             
-            aiBtn.addEventListener('click', openAiModal);
+            // ★変更: ✨ボタンを押した時は、事前指示ポップアップを開く
+            aiBtn.addEventListener('click', openPrePromptModal);
+            closePrePromptModalBtn.addEventListener('click', () => prePromptModal.style.display = 'none');
+            // ★追加: ポップアップ内で「この指示でリライト」を押した時の処理
+            executeAiBtn.addEventListener('click', executeAiFromPrePrompt);
+
             closeAiModalBtn.addEventListener('click', () => aiModal.style.display = 'none');
             tabs.forEach(tab => tab.addEventListener('click', () => switchSuggestion(parseInt(tab.dataset.index))));
             decisionBtn.addEventListener('click', handleAiDecision);
@@ -308,7 +325,6 @@
             createNewStoryBtn.addEventListener('click', createAndSwitchToNewStory);
             currentTitleSpan.addEventListener('click', handleChangeTitle);
 
-            // ★追加：分割モーダルのイベント
             closeSplitModalBtn.addEventListener('click', () => {
                 splitModal.style.display = 'none';
                 splitTargetId = null;
@@ -379,26 +395,23 @@
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'block-actions';
 
-            // 編集ボタン
             const editBtn = document.createElement('button');
             editBtn.className = 'action-icon-btn edit-button';
             editBtn.textContent = '✏️';
             editBtn.title = "編集";
 
-            // ★追加：分割ボタン
             const splitBtn = document.createElement('button');
             splitBtn.className = 'action-icon-btn split-button';
             splitBtn.textContent = '✂️';
             splitBtn.title = "分割";
 
-            // 削除ボタン
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'action-icon-btn delete-button';
             deleteBtn.textContent = '🗑️';
             deleteBtn.title = "削除";
 
             actionsDiv.appendChild(editBtn);
-            actionsDiv.appendChild(splitBtn); // 間に挿入
+            actionsDiv.appendChild(splitBtn); 
             actionsDiv.appendChild(deleteBtn);
 
             block.appendChild(textSpan);
@@ -421,9 +434,8 @@
             }
         }
         
-        // --- クリック処理（編集・分割・削除・挿入） ---
+        // --- クリック処理 ---
         function handleAreaClick(event) {
-            // A. 編集ボタン
             const editBtn = event.target.closest('.edit-button');
             if (editBtn) {
                 const block = editBtn.closest('.manuscript-block');
@@ -436,7 +448,6 @@
                 return;
             }
 
-            // ★B. 分割ボタン
             const splitBtnClick = event.target.closest('.split-button');
             if (splitBtnClick) {
                 const block = splitBtnClick.closest('.manuscript-block');
@@ -449,7 +460,6 @@
                 return;
             }
 
-            // C. 削除ボタン
             const deleteBtn = event.target.closest('.delete-button');
             if (deleteBtn) {
                 const block = deleteBtn.closest('.manuscript-block');
@@ -465,7 +475,6 @@
                 return;
             }
 
-            // D. 挿入ギャップ
             const gap = event.target.closest('.insert-gap');
             if (gap) {
                 if (gap.classList.contains('active')) { resetInputState(); return; }
@@ -479,27 +488,22 @@
             }
         }
 
-        // --- ★追加：分割の実行処理 ---
+        // --- 分割の実行処理 ---
         function handleExecuteSplit() {
             const text = splitTextarea.value;
             const cursorPos = splitTextarea.selectionStart;
 
-            // カーソルが先頭や末尾にある場合は警告
             if (cursorPos === 0 || cursorPos === text.length) {
                 alert('分割したい位置（文字と文字の間）をタップしてカーソルを合わせてください。');
                 return;
             }
 
-            // カーソル位置でテキストを2つに分ける
             const text1 = text.substring(0, cursorPos);
             const text2 = text.substring(cursorPos);
 
             const targetBlock = document.querySelector(`[data-id="${splitTargetId}"]`);
             if (targetBlock) {
-                // 1. 元のブロックの前半を更新
                 targetBlock.querySelector('.block-text').textContent = text1;
-                
-                // 2. 後半を新しいブロックとしてすぐ下（ギャップの下）に挿入
                 const targetGap = targetBlock.nextElementSibling; 
                 const nextBlock = targetGap ? targetGap.nextElementSibling : null;
                 
@@ -507,7 +511,6 @@
                 saveManuscript();
             }
 
-            // モーダルを閉じてリセット
             splitModal.style.display = 'none';
             splitTargetId = null;
         }
@@ -641,26 +644,32 @@
             ta.focus(); ta.select(); try { document.execCommand('copy'); alert('コピーしました'); } catch(e){} document.body.removeChild(ta);
         }
 
-        // --- AI機能（文脈制限なし：全ブロック送信版） ---
+        // --- ★AI機能のフロー変更 ---
         async function callRealAiApi(originalText, instruction = null) {
             const allBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info)'));
             let preContext = "";
             let postContext = "";
-            
+            const CONTEXT_RANGE = 10; 
+
             if (editingBlockId) {
                 const idx = allBlocks.findIndex(b => b.dataset.id === editingBlockId);
                 if (idx !== -1) {
-                    preContext = allBlocks.slice(0, idx).map(b => b.querySelector('.block-text').textContent).join('\n');
-                    postContext = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
+                    const startPrev = Math.max(0, idx - CONTEXT_RANGE);
+                    preContext = allBlocks.slice(startPrev, idx).map(b => b.querySelector('.block-text').textContent).join('\n');
+                    const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
+                    postContext = allBlocks.slice(idx + 1, endNext).map(b => b.querySelector('.block-text').textContent).join('\n');
                 }
             } else if (insertTargetId) {
                 const idx = allBlocks.findIndex(b => b.dataset.id === insertTargetId);
                 if (idx !== -1) {
-                    preContext = allBlocks.slice(0, idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
-                    postContext = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
+                    const startPrev = Math.max(0, idx - CONTEXT_RANGE + 1);
+                    preContext = allBlocks.slice(startPrev, idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
+                    const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
+                    postContext = allBlocks.slice(idx + 1, endNext).map(b => b.querySelector('.block-text').textContent).join('\n');
                 }
             } else {
-                preContext = allBlocks.map(b => b.querySelector('.block-text').textContent).join('\n');
+                const start = Math.max(0, allBlocks.length - CONTEXT_RANGE);
+                preContext = allBlocks.slice(start).map(b => b.querySelector('.block-text').textContent).join('\n');
             }
 
             try {
@@ -668,33 +677,45 @@
                     method: 'POST', mode: 'cors', headers: {'Content-Type': 'text/plain;charset=utf-t',},
                     body: JSON.stringify({ originalText: originalText, preContext: preContext, postContext: postContext, moreRequest: instruction })
                 });
-
                 if (!response.ok) throw new Error(response.statusText);
                 const result = await response.json();
-                
                 if (result.success) {
                     const suggs = result.suggestionText.split(/提案\d:/).map(s => s.trim()).filter(s => s.length > 0);
                     currentSuggestions = suggs.length > 0 ? suggs : [result.suggestionText];
                     while (currentSuggestions.length < 3) currentSuggestions.push("（提案なし）");
                 } else throw new Error(result.error);
-
             } catch (e) {
-                console.error(e); 
-                currentSuggestions = ["エラーが発生しました: " + e.message];
+                console.error(e); currentSuggestions = ["エラー: " + e.message];
             }
             switchSuggestion(0);
         }
 
-        async function openAiModal() {
+        // 1. 事前指示ポップアップを開く
+        function openPrePromptModal() {
             const text = textInput.value;
             if (text.trim() === '') { alert('文章を入力してください'); return; }
+            
+            prePromptInput.value = ''; // 前の入力をクリア
+            prePromptModal.style.display = 'block';
+            prePromptInput.focus();
+        }
+
+        // 2. 事前指示を添えてAPIを呼ぶ
+        async function executeAiFromPrePrompt() {
+            const text = textInput.value;
+            const instruction = prePromptInput.value.trim();
+            
+            prePromptModal.style.display = 'none'; // 事前指示ポップアップを閉じる
+            
             originalTextContent.textContent = text;
             currentSuggestions = ["考え中...", "考え中...", "考え中..."];
             switchSuggestion(0);
-            aiModal.style.display = 'block';
-            await callRealAiApi(text, null); 
+            aiModal.style.display = 'block'; // 結果表示用モーダルを開く
+            
+            await callRealAiApi(text, instruction || null); 
         }
 
+        // 3. （従来通り）結果画面からさらに追加指示を出す場合
         async function handleAiMoreRequest(req) {
             currentSuggestions = ["考え直しています...", "考え直しています...", "考え直しています..."];
             switchSuggestion(0);
