@@ -70,8 +70,12 @@
             cursor: pointer; font-size: 14px; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
         }
         .action-icon-btn:hover { background-color: #f0f0f0; border-color: #ccc; }
+        
+        /* ボタン個別のホバー色 */
         .delete-button:hover { background-color: #ffebee; color: #d32f2f; border-color: #ffcdd2; }
         .split-button:hover { background-color: #fff3e0; border-color: #ffcc80; }
+        /* ★追加: コピーボタンのホバー色（薄い緑） */
+        .copy-button:hover { background-color: #e8f5e9; border-color: #a5d6a7; }
         
         .manuscript-block.info { color: #888; cursor: default; border-bottom: 1px solid #eee; }
         .manuscript-block.is-editing { background-color: #e3f2fd; border-radius: 5px; padding-left: 5px; padding-right: 5px;}
@@ -174,6 +178,7 @@
         </div>
     </div>
 
+    <!-- 事前指示モーダル -->
     <div id="pre-prompt-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -193,6 +198,7 @@
         </div>
     </div>
 
+    <!-- AI結果モーダル -->
     <div id="ai-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -216,6 +222,7 @@
         </div>
     </div>
 
+    <!-- 作品一覧モーダル -->
     <div id="story-list-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -229,6 +236,7 @@
         </div>
     </div>
 
+    <!-- ブロック分割モーダル -->
     <div id="split-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -257,7 +265,6 @@
         const menuBtn = document.getElementById('menu-btn');
         const currentTitleSpan = document.getElementById('current-title');
         
-        // 事前指示モーダル用 (★追加)
         const prePromptModal = document.getElementById('pre-prompt-modal');
         const closePrePromptModalBtn = document.getElementById('close-pre-prompt-modal');
         const prePromptInput = document.getElementById('pre-prompt-input');
@@ -301,10 +308,8 @@
             textInput.addEventListener('input', autoResizeTextarea);
             confirmBtn.addEventListener('click', handleConfirm);
             
-            // ★変更: ✨ボタンを押した時は、事前指示ポップアップを開く
             aiBtn.addEventListener('click', openPrePromptModal);
             closePrePromptModalBtn.addEventListener('click', () => prePromptModal.style.display = 'none');
-            // ★追加: ポップアップ内で「この指示でリライト」を押した時の処理
             executeAiBtn.addEventListener('click', executeAiFromPrePrompt);
 
             closeAiModalBtn.addEventListener('click', () => aiModal.style.display = 'none');
@@ -400,6 +405,12 @@
             editBtn.textContent = '✏️';
             editBtn.title = "編集";
 
+            // ★追加: コピーボタン
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'action-icon-btn copy-button';
+            copyBtn.textContent = '📋';
+            copyBtn.title = "コピー";
+
             const splitBtn = document.createElement('button');
             splitBtn.className = 'action-icon-btn split-button';
             splitBtn.textContent = '✂️';
@@ -411,6 +422,7 @@
             deleteBtn.title = "削除";
 
             actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(copyBtn); // 編集ボタンの次に追加
             actionsDiv.appendChild(splitBtn); 
             actionsDiv.appendChild(deleteBtn);
 
@@ -445,6 +457,27 @@
                 block.classList.add('is-editing');
                 textInput.value = block.querySelector('.block-text').textContent;
                 autoResizeTextarea(); textInput.focus();
+                return;
+            }
+
+            // ★追加: 個別コピーボタンの処理
+            const copyBtnClick = event.target.closest('.copy-button');
+            if (copyBtnClick) {
+                const block = copyBtnClick.closest('.manuscript-block');
+                if (!block || block.classList.contains('info')) return;
+                
+                const textToCopy = block.querySelector('.block-text').textContent;
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        const originalIcon = copyBtnClick.textContent;
+                        copyBtnClick.textContent = '✔️';
+                        setTimeout(() => copyBtnClick.textContent = originalIcon, 1500);
+                    }).catch(err => {
+                        fallbackCopy(textToCopy);
+                    });
+                } else {
+                    fallbackCopy(textToCopy);
+                }
                 return;
             }
 
@@ -644,32 +677,26 @@
             ta.focus(); ta.select(); try { document.execCommand('copy'); alert('コピーしました'); } catch(e){} document.body.removeChild(ta);
         }
 
-        // --- ★AI機能のフロー変更 ---
+        // --- ★AI機能のフロー ---
         async function callRealAiApi(originalText, instruction = null) {
             const allBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info)'));
             let preContext = "";
             let postContext = "";
-            const CONTEXT_RANGE = 10; 
-
+            
             if (editingBlockId) {
                 const idx = allBlocks.findIndex(b => b.dataset.id === editingBlockId);
                 if (idx !== -1) {
-                    const startPrev = Math.max(0, idx - CONTEXT_RANGE);
-                    preContext = allBlocks.slice(startPrev, idx).map(b => b.querySelector('.block-text').textContent).join('\n');
-                    const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
-                    postContext = allBlocks.slice(idx + 1, endNext).map(b => b.querySelector('.block-text').textContent).join('\n');
+                    preContext = allBlocks.slice(0, idx).map(b => b.querySelector('.block-text').textContent).join('\n');
+                    postContext = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
                 }
             } else if (insertTargetId) {
                 const idx = allBlocks.findIndex(b => b.dataset.id === insertTargetId);
                 if (idx !== -1) {
-                    const startPrev = Math.max(0, idx - CONTEXT_RANGE + 1);
-                    preContext = allBlocks.slice(startPrev, idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
-                    const endNext = Math.min(allBlocks.length, idx + 1 + CONTEXT_RANGE);
-                    postContext = allBlocks.slice(idx + 1, endNext).map(b => b.querySelector('.block-text').textContent).join('\n');
+                    preContext = allBlocks.slice(0, idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
+                    postContext = allBlocks.slice(idx + 1).map(b => b.querySelector('.block-text').textContent).join('\n');
                 }
             } else {
-                const start = Math.max(0, allBlocks.length - CONTEXT_RANGE);
-                preContext = allBlocks.slice(start).map(b => b.querySelector('.block-text').textContent).join('\n');
+                preContext = allBlocks.map(b => b.querySelector('.block-text').textContent).join('\n');
             }
 
             try {
@@ -690,32 +717,29 @@
             switchSuggestion(0);
         }
 
-        // 1. 事前指示ポップアップを開く
         function openPrePromptModal() {
             const text = textInput.value;
             if (text.trim() === '') { alert('文章を入力してください'); return; }
             
-            prePromptInput.value = ''; // 前の入力をクリア
+            prePromptInput.value = ''; 
             prePromptModal.style.display = 'block';
             prePromptInput.focus();
         }
 
-        // 2. 事前指示を添えてAPIを呼ぶ
         async function executeAiFromPrePrompt() {
             const text = textInput.value;
             const instruction = prePromptInput.value.trim();
             
-            prePromptModal.style.display = 'none'; // 事前指示ポップアップを閉じる
+            prePromptModal.style.display = 'none'; 
             
             originalTextContent.textContent = text;
             currentSuggestions = ["考え中...", "考え中...", "考え中..."];
             switchSuggestion(0);
-            aiModal.style.display = 'block'; // 結果表示用モーダルを開く
+            aiModal.style.display = 'block'; 
             
             await callRealAiApi(text, instruction || null); 
         }
 
-        // 3. （従来通り）結果画面からさらに追加指示を出す場合
         async function handleAiMoreRequest(req) {
             currentSuggestions = ["考え直しています...", "考え直しています...", "考え直しています..."];
             switchSuggestion(0);
