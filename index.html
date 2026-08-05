@@ -53,14 +53,31 @@
         .manuscript-block {
             padding: 10px 0; 
             display: flex; justify-content: space-between; 
-            align-items: center; 
+            align-items: flex-start; /* ★長い文章でもボタンが上に来るように変更 */
             gap: 15px; 
         }
         .block-text { flex-grow: 1; word-wrap: break-word; white-space: pre-wrap; }
         
+        /* ★追加: 直書き（インライン）編集用のテキストエリア */
+        .inline-edit-textarea {
+            flex-grow: 1;
+            font-family: inherit;
+            font-size: 16px;
+            line-height: 1.8;
+            border: 2px solid #4A90E2;
+            border-radius: 5px;
+            padding: 8px;
+            margin: -10px 0; 
+            resize: none;
+            background-color: #f0f8ff;
+            box-sizing: border-box;
+            overflow-y: hidden;
+        }
+
         .block-actions {
             display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
             opacity: 0.3; transition: opacity 0.2s;
+            margin-top: 2px;
         }
         .manuscript-block:hover .block-actions { opacity: 1; }
 
@@ -74,11 +91,10 @@
         /* ボタン個別のホバー色 */
         .delete-button:hover { background-color: #ffebee; color: #d32f2f; border-color: #ffcdd2; }
         .split-button:hover { background-color: #fff3e0; border-color: #ffcc80; }
-        /* ★追加: コピーボタンのホバー色（薄い緑） */
         .copy-button:hover { background-color: #e8f5e9; border-color: #a5d6a7; }
         
         .manuscript-block.info { color: #888; cursor: default; border-bottom: 1px solid #eee; }
-        .manuscript-block.is-editing { background-color: #e3f2fd; border-radius: 5px; padding-left: 5px; padding-right: 5px;}
+        .manuscript-block.is-editing { background-color: transparent; } /* 編集中の背景色を調整 */
 
         /* 挿入用エリア */
         .insert-gap {
@@ -110,6 +126,7 @@
             font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "MS PMincho", "serif";
         }
         #text-input.insert-mode { border: 2px solid #4A90E2; background-color: #f0f8ff; }
+        #text-input:disabled { background-color: #e0e0e0; cursor: not-allowed; } /* 追加：編集中は無効化 */
         
         .action-button {
             display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;
@@ -125,7 +142,7 @@
         .modal-header { padding: 15px; border-bottom: 1px solid #eee; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .close-modal-btn { font-size: 24px; font-weight: bold; color: #aaa; cursor: pointer; padding: 5px; }
 
-        /* 事前指示モーダル用（少し小さめ） */
+        /* 事前指示モーダル用 */
         #pre-prompt-modal .modal-content { height: auto; max-height: 60vh; }
 
         /* AI結果モーダル */
@@ -337,21 +354,20 @@
             executeSplitBtn.addEventListener('click', handleExecuteSplit);
         });
 
-        // --- 確定ボタン処理 ---
+        // --- ★確定ボタン処理（インライン編集対応） ---
         function handleConfirm() {
+            // インライン編集中ならそれを保存する
+            if (editingBlockId) {
+                const b = document.querySelector(`[data-id="${editingBlockId}"]`);
+                if (b) commitInlineEdit(b);
+                return;
+            }
+
+            // 通常の新規作成・挿入
             const text = textInput.value;
             if (text.trim() === '') { resetInputState(); return; }
 
-            if (editingBlockId) {
-                const editingBlock = document.querySelector(`[data-id="${editingBlockId}"]`);
-                if (editingBlock) {
-                    const textSpan = editingBlock.querySelector('.block-text');
-                    if (textSpan) textSpan.textContent = text;
-                    editingBlock.classList.remove('is-editing');
-                }
-                editingBlockId = null;
-            } 
-            else if (insertTargetId) {
+            if (insertTargetId) {
                 const targetBlock = document.querySelector(`[data-id="${insertTargetId}"]`);
                 if (targetBlock) {
                     const targetGap = targetBlock.nextElementSibling; 
@@ -371,20 +387,47 @@
             saveManuscript();
         }
 
+        // --- ★インライン編集の確定処理 ---
+        function commitInlineEdit(block) {
+            const textSpan = block.querySelector('.block-text');
+            const ta = block.querySelector('.inline-edit-textarea');
+            const editBtn = block.querySelector('.edit-button');
+            
+            if (ta && textSpan) {
+                textSpan.textContent = ta.value;
+                ta.remove();
+                textSpan.style.display = '';
+            }
+            
+            block.classList.remove('is-editing');
+            if(editBtn) {
+                editBtn.textContent = '✏️';
+                editBtn.title = '編集';
+                editBtn.style.backgroundColor = '';
+                editBtn.style.borderColor = '';
+            }
+            
+            editingBlockId = null;
+            textInput.disabled = false;
+            textInput.placeholder = "文章を入力...";
+            saveManuscript();
+        }
+
         function resetInputState() {
             if (editingBlockId) {
                 const b = document.querySelector(`[data-id="${editingBlockId}"]`);
-                if (b) b.classList.remove('is-editing');
-                editingBlockId = null;
+                if (b) commitInlineEdit(b); // 他の場所を触ったら自動保存
             }
             if (insertTargetId) {
                 const gaps = document.querySelectorAll('.insert-gap');
                 gaps.forEach(g => g.classList.remove('active'));
                 insertTargetId = null;
                 textInput.classList.remove('insert-mode');
-                textInput.placeholder = "文章を入力...";
             }
-            textInput.value = ''; autoResizeTextarea();
+            textInput.value = ''; 
+            textInput.disabled = false;
+            textInput.placeholder = "文章を入力...";
+            autoResizeTextarea();
         }
 
         // --- DOM生成 ---
@@ -405,7 +448,6 @@
             editBtn.textContent = '✏️';
             editBtn.title = "編集";
 
-            // ★追加: コピーボタン
             const copyBtn = document.createElement('button');
             copyBtn.className = 'action-icon-btn copy-button';
             copyBtn.textContent = '📋';
@@ -422,7 +464,7 @@
             deleteBtn.title = "削除";
 
             actionsDiv.appendChild(editBtn);
-            actionsDiv.appendChild(copyBtn); // 編集ボタンの次に追加
+            actionsDiv.appendChild(copyBtn); 
             actionsDiv.appendChild(splitBtn); 
             actionsDiv.appendChild(deleteBtn);
 
@@ -446,21 +488,61 @@
             }
         }
         
-        // --- クリック処理 ---
+        // --- ★クリック処理（インライン編集対応） ---
         function handleAreaClick(event) {
             const editBtn = event.target.closest('.edit-button');
             if (editBtn) {
                 const block = editBtn.closest('.manuscript-block');
                 if (!block || block.classList.contains('info')) return;
-                resetInputState();
+                
+                // すでに編集中なら「保存」として扱う
+                if (block.classList.contains('is-editing')) {
+                    commitInlineEdit(block);
+                    return;
+                }
+
+                resetInputState(); // 他の編集や挿入状態をリセット
+                
                 editingBlockId = block.dataset.id;
                 block.classList.add('is-editing');
-                textInput.value = block.querySelector('.block-text').textContent;
-                autoResizeTextarea(); textInput.focus();
+                
+                // テキストを隠してテキストエリアを生成
+                const textSpan = block.querySelector('.block-text');
+                const currentText = textSpan.textContent;
+                textSpan.style.display = 'none';
+
+                const ta = document.createElement('textarea');
+                ta.className = 'inline-edit-textarea';
+                ta.value = currentText;
+                
+                // 高さを自動調整する機能
+                const adjustHeight = () => {
+                    ta.style.height = 'auto';
+                    ta.style.height = ta.scrollHeight + 'px';
+                };
+                ta.addEventListener('input', adjustHeight);
+                
+                block.insertBefore(ta, block.querySelector('.block-actions'));
+                
+                // ボタンを ✔️ に変更
+                editBtn.textContent = '✔️';
+                editBtn.title = '保存';
+                editBtn.style.backgroundColor = '#e8f5e9';
+                editBtn.style.borderColor = '#a5d6a7';
+                
+                // 少し遅らせてフォーカス＆高さ調整
+                requestAnimationFrame(() => {
+                    adjustHeight();
+                    ta.focus();
+                    ta.selectionStart = ta.selectionEnd = ta.value.length; // カーソルを末尾へ
+                });
+
+                // 下の入力欄は混乱を防ぐため無効化
+                textInput.disabled = true;
+                textInput.placeholder = "上のブロックを編集中...";
                 return;
             }
 
-            // ★追加: 個別コピーボタンの処理
             const copyBtnClick = event.target.closest('.copy-button');
             if (copyBtnClick) {
                 const block = copyBtnClick.closest('.manuscript-block');
@@ -472,12 +554,8 @@
                         const originalIcon = copyBtnClick.textContent;
                         copyBtnClick.textContent = '✔️';
                         setTimeout(() => copyBtnClick.textContent = originalIcon, 1500);
-                    }).catch(err => {
-                        fallbackCopy(textToCopy);
-                    });
-                } else {
-                    fallbackCopy(textToCopy);
-                }
+                    }).catch(err => fallbackCopy(textToCopy));
+                } else { fallbackCopy(textToCopy); }
                 return;
             }
 
@@ -501,8 +579,14 @@
                 if (confirm("この段落を削除しますか？")) {
                     const nextGap = block.nextElementSibling;
                     if (nextGap && nextGap.classList.contains('insert-gap')) { nextGap.remove(); }
+                    
+                    // 削除対象がもし編集中だったらリセット
+                    if (editingBlockId === block.dataset.id) { 
+                        editingBlockId = null;
+                        textInput.disabled = false;
+                        textInput.placeholder = "文章を入力...";
+                    }
                     block.remove();
-                    if (editingBlockId === block.dataset.id) { resetInputState(); }
                     saveManuscript();
                 }
                 return;
@@ -677,7 +761,7 @@
             ta.focus(); ta.select(); try { document.execCommand('copy'); alert('コピーしました'); } catch(e){} document.body.removeChild(ta);
         }
 
-        // --- ★AI機能のフロー ---
+        // --- ★AI機能のフロー（インライン編集対応） ---
         async function callRealAiApi(originalText, instruction = null) {
             const allBlocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info)'));
             let preContext = "";
@@ -718,7 +802,15 @@
         }
 
         function openPrePromptModal() {
-            const text = textInput.value;
+            // インライン編集中ならそっちのテキストを取得
+            let text = '';
+            if (editingBlockId) {
+                const ta = document.querySelector('.inline-edit-textarea');
+                if(ta) text = ta.value;
+            } else {
+                text = textInput.value;
+            }
+
             if (text.trim() === '') { alert('文章を入力してください'); return; }
             
             prePromptInput.value = ''; 
@@ -727,9 +819,15 @@
         }
 
         async function executeAiFromPrePrompt() {
-            const text = textInput.value;
+            let text = '';
+            if (editingBlockId) {
+                const ta = document.querySelector('.inline-edit-textarea');
+                if(ta) text = ta.value;
+            } else {
+                text = textInput.value;
+            }
+
             const instruction = prePromptInput.value.trim();
-            
             prePromptModal.style.display = 'none'; 
             
             originalTextContent.textContent = text;
@@ -751,10 +849,25 @@
             suggestionText.textContent = currentSuggestions[index];
             tabs.forEach((tab, i) => tab.classList.toggle('active', i === index));
         }
+
+        // ★決定ボタンを押したとき、インライン編集中ならそっちを更新する
         function handleAiDecision() {
-            textInput.value = currentSuggestions[currentSuggestionIndex];
-            autoResizeTextarea(); aiModal.style.display = 'none';
+            const newText = currentSuggestions[currentSuggestionIndex];
+            
+            if (editingBlockId) {
+                const ta = document.querySelector('.inline-edit-textarea');
+                if(ta) {
+                    ta.value = newText;
+                    ta.style.height = 'auto'; 
+                    ta.style.height = ta.scrollHeight + 'px'; // 高さ自動再調整
+                }
+            } else {
+                textInput.value = newText;
+                autoResizeTextarea(); 
+            }
+            aiModal.style.display = 'none';
         }
+
         function autoResizeTextarea() {
             textInput.style.height = 'auto'; textInput.style.height = textInput.scrollHeight + 'px'; 
         }
