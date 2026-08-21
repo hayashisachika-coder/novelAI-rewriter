@@ -510,9 +510,12 @@
                 ta.className = 'inline-edit-textarea';
                 ta.value = currentText;
                 
+                // ★修正: 高さを再計算する一瞬の間にスクロールが動くのを防ぐ
                 const adjustHeight = () => {
+                    const currentScroll = manuscriptArea.scrollTop; // 現在のスクロール位置を記憶
                     ta.style.height = 'auto';
                     ta.style.height = ta.scrollHeight + 'px';
+                    manuscriptArea.scrollTop = currentScroll; // スクロール位置を戻す
                 };
                 ta.addEventListener('input', adjustHeight);
                 
@@ -523,10 +526,8 @@
                 editBtn.style.backgroundColor = '#e8f5e9';
                 editBtn.style.borderColor = '#a5d6a7';
                 
-                // ★ スクロール防止処理を追加
                 requestAnimationFrame(() => {
                     adjustHeight();
-                    // preventScroll: true を指定して、画面が勝手に動くのを防ぐ
                     ta.focus({ preventScroll: true }); 
                     ta.selectionStart = ta.selectionEnd = ta.value.length; 
                 });
@@ -859,7 +860,11 @@
         }
 
         function autoResizeTextarea() {
-            textInput.style.height = 'auto'; textInput.style.height = textInput.scrollHeight + 'px'; 
+            textInput.style.height = 'auto'; 
+            // 下の入力欄のガタつきも防止
+            const currentScroll = manuscriptArea.scrollTop; 
+            textInput.style.height = textInput.scrollHeight + 'px'; 
+            manuscriptArea.scrollTop = currentScroll;
         }
 
     </script>
