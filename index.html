@@ -738,13 +738,7 @@
 
         function updateCharCount() {
             const blocks = Array.from(manuscriptArea.querySelectorAll('.manuscript-block:not(.info) .block-text'));
-            let totalCount = 0; 
-            blocks.forEach(block => { 
-                // \s は「スペース、タブ、改行（全角スペース含む）」を表します。
-                // これらを一時的に空っぽ('')にしてから文字数を数えます。
-                const pureText = block.textContent.replace(/\s/g, '');
-                totalCount += pureText.length; 
-            });
+            let totalCount = 0; blocks.forEach(block => { totalCount += block.textContent.length; });
             charCountDisplay.textContent = `${totalCount}文字`;
         }
         function handleCopyAll() {
